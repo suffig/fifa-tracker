@@ -12,7 +12,7 @@ let liveSyncInitialized = false;
 let tabButtonsInitialized = false;
 
 // 4. Dark Mode Toggle
-const darkToggle = () => {
+/*const darkToggle = () => {
     if (document.documentElement.classList.contains('dark')) {
         document.documentElement.classList.remove('dark');
         localStorage.setItem('theme', 'light');
@@ -30,7 +30,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     // Toggle-Button Events
     document.getElementById('dark-toggle')?.addEventListener('click', darkToggle);
-});
+});*/
 
 // 5. Loader anzeigen/ausblenden
 function showTabLoader(show = true) {
