@@ -66,11 +66,11 @@ export async function renderSpielerTab(containerId = "app") {
                 <div class="flex flex-row gap-3 w-full overflow-x-auto pb-2">
                     ${top3.map((s, idx) => `
                         <div class="flex-1 min-w-0 max-w-xs w-full p-4 rounded-2xl shadow-md flex flex-col items-center border-2 border-opacity-60 
-                            ${idx === 0 
-                                ? 'border-yellow-400 bg-yellow-50' 
-                                : idx === 1 
-                                    ? 'border-gray-400 bg-gray-50'
-                                    : 'border-orange-400 bg-orange-50'} ${getCardClass(s.team)}">
+							${idx === 0 
+								? 'border-yellow-400 bg-yellow-50'
+								: idx === 1
+									? 'border-gray-400 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-300'
+									: 'border-orange-400 bg-orange-50'} ${getCardClass(s.team)}"
                             <div class="text-2xl font-extrabold mb-1">${getBadge(idx)}</div>
                             <div class="font-bold mb-0.5 text-base truncate w-full text-center">${s.name}</div>
                             <div class="text-xs text-base mb-1">${s.team}</div>
@@ -151,11 +151,11 @@ export async function renderSpielerTab(containerId = "app") {
                 <div class="flex flex-row gap-3 w-full overflow-x-auto pb-2">
                     ${top3.map((s, idx) => `
                         <div class="flex-1 min-w-0 max-w-xs w-full p-4 rounded-2xl shadow-md flex flex-col items-center border-2 border-opacity-60 
-                            ${idx === 0 
-                                ? 'border-yellow-400 bg-yellow-50' 
-                                : idx === 1 
-                                    ? 'border-gray-400 bg-gray-50'
-                                    : 'border-orange-400 bg-orange-50'} ${getCardClass(s.team)}">
+							${idx === 0 
+								? 'border-yellow-400 bg-yellow-50'
+								: idx === 1
+									? 'border-gray-400 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-300'
+									: 'border-orange-400 bg-orange-50'} ${getCardClass(s.team)}"
                             <div class="text-2xl font-extrabold mb-1">${getBadge(idx)}</div>
                             <div class="font-bold mb-0.5 text-base truncate w-full text-center">${s.name}</div>
                             <div class="text-xs text-base mb-1">${s.team}</div>
