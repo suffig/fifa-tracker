@@ -57,30 +57,30 @@ export async function renderSpielerTab(containerId = "app") {
         const top3 = scorerArr.slice(0, 3);
         const rest = scorerArr.slice(3);
 
-        // Card-Ansicht Top 3 - alle in einer Reihe, responsive (scrollbar auf ganz kleinen Screens)
-        let top3Html = '';
-        if (top3.length) {
-            top3Html = `
-            <div class="mb-4">
-                <div class="text-md font-semibold mb-2">Top 3 Torschützen</div>
-                <div class="flex flex-row gap-3 w-full overflow-x-auto pb-2">
-                    ${top3.map((s, idx) => `
-                        <div class="flex-1 min-w-0 max-w-xs w-full p-4 rounded-2xl shadow-md flex flex-col items-center border-2 border-opacity-60
+		// Card-Ansicht Top 3 - alle in einer Reihe, responsive (scrollbar auf ganz kleinen Screens)
+		let top3Html = '';
+		if (top3.length) {
+			top3Html = `
+			<div class="mb-4">
+				<div class="text-md font-semibold mb-2">Top 3 Torschützen</div>
+				<div class="flex flex-row gap-3 w-full overflow-x-auto pb-2">
+					${top3.map((s, idx) => `
+						<div class="flex-1 min-w-0 max-w-xs w-full p-4 rounded-2xl shadow-md flex flex-col items-center border-2 border-opacity-60
 							${idx === 0 
 								? 'border-yellow-400 bg-yellow-50'
 								: idx === 1
 									? 'border-gray-400 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-300 bg-gray-50'
 									: 'border-orange-400 bg-orange-50'}">
-                            <div class="text-2xl font-extrabold mb-1">${getBadge(idx)}</div>
-                            <div class="font-bold mb-0.5 text-base truncate w-full text-center ${getCardClass(s.team)}">${s.name}</div>
-                            <div class="text-xs text-base mb-1 ${getCardClass(s.team)}">${s.team}</div>
-                            <div class="text-2xl text-base font-bold ${getCardClass(s.team)}">${s.goals}</div>
-                        </div>
-                    `).join('')}
-                </div>
-            </div>
-            `;
-        }
+							<div class="text-2xl font-extrabold mb-1">${getBadge(idx)}</div>
+							<div class="font-bold mb-0.5 text-base truncate w-full text-center ${getCardClass(s.team)}">${s.name}</div>
+							<div class="text-xs text-base mb-1 ${getCardClass(s.team)}">${s.team}</div>
+							<div class="text-2xl text-base font-bold ${getCardClass(s.team)}">${s.goals}</div>
+						</div>
+					`).join('')}
+				</div>
+			</div>
+			`;
+		}
 
         // Restliche als Tabelle
         let tableHtml = '';
