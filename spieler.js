@@ -23,9 +23,9 @@ export async function renderSpielerTab(containerId = "app") {
 
     // Hilfsfunktion für Card-Klasse nach Team
     function getCardClass(team) {
-        if (team === "Ehemalige") return "bg-gray-100 text-gray-500";
-        if (team === "AEK") return "bg-blue-100 text-blue-900";
-        return "bg-red-100 text-red-900";
+        if (team === "Ehemalige") return "text-gray-500";
+        if (team === "AEK") return "text-blue-900";
+        return "text-red-900";
     }
 
     function getBadge(idx) {
@@ -65,16 +65,16 @@ export async function renderSpielerTab(containerId = "app") {
                 <div class="text-md font-semibold mb-2">Top 3 Torschützen</div>
                 <div class="flex flex-row gap-3 w-full overflow-x-auto pb-2">
                     ${top3.map((s, idx) => `
-                        <div class="flex-1 min-w-0 max-w-xs w-full p-4 rounded-2xl shadow-md flex flex-col items-center border-2 border-opacity-60 
+                        <div class="flex-1 min-w-0 max-w-xs w-full p-4 rounded-2xl shadow-md flex flex-col items-center border-2 border-opacity-60
 							${idx === 0 
 								? 'border-yellow-400 bg-yellow-50'
 								: idx === 1
-									? 'border-gray-400 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-300'
-									: 'border-orange-400 bg-orange-50'} ${getCardClass(s.team)}"
+									? 'border-gray-400 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-300 bg-gray-50'
+									: 'border-orange-400 bg-orange-50'}">
                             <div class="text-2xl font-extrabold mb-1">${getBadge(idx)}</div>
-                            <div class="font-bold mb-0.5 text-base truncate w-full text-center">${s.name}</div>
-                            <div class="text-xs text-base mb-1">${s.team}</div>
-                            <div class="text-2xl text-base font-bold">${s.goals}</div>
+                            <div class="font-bold mb-0.5 text-base truncate w-full text-center ${getCardClass(s.team)}">${s.name}</div>
+                            <div class="text-xs text-base mb-1 ${getCardClass(s.team)}">${s.team}</div>
+                            <div class="text-2xl text-base font-bold ${getCardClass(s.team)}">${s.goals}</div>
                         </div>
                     `).join('')}
                 </div>
@@ -98,7 +98,10 @@ export async function renderSpielerTab(containerId = "app") {
                 </thead>
                 <tbody>
                     ${rest.map((s, idx) => {
-                        let tClass = getCardClass(s.team);
+                        let tClass = "";
+                        if (s.team === "Ehemalige") tClass = "bg-gray-100 text-gray-500";
+                        else if (s.team === "AEK") tClass = "bg-blue-100 text-blue-900";
+                        else tClass = "bg-red-100 text-red-900";
                         return `
                             <tr>
                                 <td class="p-2 text-center font-bold ${tClass} rounded">${idx + 4}</td>
@@ -154,12 +157,12 @@ export async function renderSpielerTab(containerId = "app") {
 						${idx === 0 
 							? 'border-yellow-400 bg-yellow-50'
 							: idx === 1
-								? 'border-gray-400 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-300'
+								? 'border-gray-400 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-300 bg-gray-50'
 								: 'border-orange-400 bg-orange-50'}">
                             <div class="text-2xl font-extrabold mb-1">${getBadge(idx)}</div>
-                            <div class="font-bold mb-0.5 text-base truncate w-full text-center">${s.name}</div>
-                            <div class="text-xs text-base mb-1">${s.team}</div>
-                            <div class="text-2xl text-base font-bold">${s.count}</div>
+                            <div class="font-bold mb-0.5 text-base truncate w-full text-center ${getCardClass(s.team)}">${s.name}</div>
+                            <div class="text-xs text-base mb-1 ${getCardClass(s.team)}">${s.team}</div>
+                            <div class="text-2xl text-base font-bold ${getCardClass(s.team)}">${s.count}</div>
                         </div>
                     `).join('')}
                 </div>
@@ -183,7 +186,10 @@ export async function renderSpielerTab(containerId = "app") {
                 </thead>
                 <tbody>
                     ${rest.map((s, idx) => {
-                        let tClass = getCardClass(s.team);
+                        let tClass = "";
+                        if (s.team === "Ehemalige") tClass = "bg-gray-100 text-gray-500";
+                        else if (s.team === "AEK") tClass = "bg-blue-100 text-blue-900";
+                        else tClass = "bg-red-100 text-red-900";
                         return `
                             <tr>
                                 <td class="p-2 text-center font-bold ${tClass} rounded">${idx + 4}</td>
