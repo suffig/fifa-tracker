@@ -11,28 +11,7 @@ let currentTab = "squad";
 let liveSyncInitialized = false;
 let tabButtonsInitialized = false;
 
-// 4. Dark Mode Toggle
-/*const darkToggle = () => {
-    if (document.documentElement.classList.contains('dark')) {
-        document.documentElement.classList.remove('dark');
-        localStorage.setItem('theme', 'light');
-    } else {
-        document.documentElement.classList.add('dark');
-        localStorage.setItem('theme', 'dark');
-    }
-};
-document.addEventListener('DOMContentLoaded', () => {
-    // Theme beim Laden setzen
-    if (localStorage.getItem('theme') === 'dark' || (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-        document.documentElement.classList.add('dark');
-    } else {
-        document.documentElement.classList.remove('dark');
-    }
-    // Toggle-Button Events
-    document.getElementById('dark-toggle')?.addEventListener('click', darkToggle);
-});*/
-
-// 5. Loader anzeigen/ausblenden
+// Loader anzeigen/ausblenden
 function showTabLoader(show = true) {
     const loader = document.getElementById('tab-loader');
     if (loader) loader.style.display = show ? "flex" : "none";
@@ -51,13 +30,13 @@ function switchTab(tab) {
         desktopTab.classList.add("bg-blue-700","text-white","active-tab","lg:text-blue-700");
         desktopTab.setAttribute("aria-current","page");
     }
-    // 5. Loader anzeigen
     showTabLoader(true);
-    setTimeout(() => { // Simuliere Ladedauer, falls render-Funktion async ist, ggf. anpassen!
+    setTimeout(() => {
         renderCurrentTab();
         showTabLoader(false);
     }, 300);
 }
+
 function renderCurrentTab() {
     if(currentTab==="squad") renderKaderTab("app");
     else if(currentTab==="bans") renderBansTab("app");
@@ -66,6 +45,7 @@ function renderCurrentTab() {
     else if(currentTab==="finanzen") renderFinanzenTab("app");
     else if(currentTab==="spieler") renderSpielerTab("app");
 }
+
 function setupTabButtons() {
     if(tabButtonsInitialized) return;
     document.getElementById("squad-tab")?.addEventListener("click", e => { e.preventDefault(); switchTab("squad"); });
@@ -76,6 +56,7 @@ function setupTabButtons() {
     document.getElementById("spieler-tab")?.addEventListener("click", e => { e.preventDefault(); switchTab("spieler"); });
     tabButtonsInitialized = true;
 }
+
 function subscribeAllLiveSync() {
     if (liveSyncInitialized) return;
     supabase
@@ -113,16 +94,13 @@ async function renderLoginArea() {
         const appContainer = document.querySelector('.app-container');
         const logoutBtn = document.getElementById('logout-btn');
         if (!loginDiv || !appContainer) {
-            // Fallback: Immer irgendwas anzeigen!
             document.body.innerHTML = "<div style='padding:2rem;text-align:center;color:red'>Wichtige App-Elemente fehlen. Bitte Seite neu laden oder Browserdaten löschen.</div>";
             return;
         }
 
-        // Supabase Session prüfen
         const { data: { session }, error } = await supabase.auth.getSession();
 
         if (error) {
-            // Fehler beim Laden der Session
             appContainer.style.display = "none";
             loginDiv.style.display = "";
             loginDiv.innerHTML = "<p class='text-red-600 text-center mt-10'>Fehler beim Laden der Session.<br>Bitte Seite neu laden oder erneut anmelden.</p>";
@@ -131,7 +109,6 @@ async function renderLoginArea() {
         }
 
         if (session) {
-            // Eingeloggt: App anzeigen, Login verstecken
             loginDiv.innerHTML = "";
             loginDiv.style.display = "none";
             appContainer.style.display = "";
@@ -145,7 +122,6 @@ async function renderLoginArea() {
             }
             subscribeAllLiveSync();
         } else {
-            // Nicht eingeloggt: Login-Form anzeigen, App verstecken
             loginDiv.innerHTML = `
                 <div class="flex flex-col items-center mb-3">
                     <img src="assets/logo.png" alt="Logo" class="w-60 h-60 mb-2" />
@@ -176,7 +152,6 @@ async function renderLoginArea() {
             }
         }
     } catch(e) {
-        // Fallback für unerwartete Fehler (z.B. kaputtes localStorage)
         document.body.innerHTML = `<div style='padding:2rem;text-align:center;color:red'>
             Interner Fehler beim Initialisieren der App.<br>
             Bitte Browserdaten (Cookies/LocalStorage) löschen und Seite neu laden.<br>
