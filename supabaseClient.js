@@ -12,3 +12,6 @@ export const supabase = createClient(
     }
   }
 );
+
+// Am Ende von supabaseClient.js
+window.supabase = supabase;

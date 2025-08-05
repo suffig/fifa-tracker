@@ -244,7 +244,7 @@ function openMatchForm(id) {
             <div id="scorersA">
                 ${scorerFields("goalslista", goalsListA, aekSpieler)}
             </div>
-            <button type="button" id="addScorerA" class="w-full mt-2 flex items-center justify-center gap-2 bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-600 hover:to-blue-700 text-white font-semibold py-2 px-4 rounded-lg text-base shadow transition active:scale-95">
+            <button type="button" id="addScorerA" class="w-full mt-2 flex items-center justify-center gap-2 bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-600 hover:to-blue-700 text-black font-semibold py-2 px-4 rounded-lg text-base shadow transition active:scale-95">
                 <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                 <span>Torschütze hinzufügen</span>
             </button>
@@ -254,7 +254,7 @@ function openMatchForm(id) {
             <div id="scorersB">
                 ${scorerFields("goalslistb", goalsListB, realSpieler)}
             </div>
-            <button type="button" id="addScorerB" class="w-full mt-2 flex items-center justify-center gap-2 bg-gradient-to-r from-rose-500 to-red-600 hover:from-rose-600 hover:to-red-700 text-white font-semibold py-2 px-4 rounded-lg text-base shadow transition active:scale-95">
+            <button type="button" id="addScorerB" class="w-full mt-2 flex items-center justify-center gap-2 bg-gradient-to-r from-rose-500 to-red-600 hover:from-rose-600 hover:to-red-700 text-black font-semibold py-2 px-4 rounded-lg text-base shadow transition active:scale-95">
                 <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                 <span>Torschütze hinzufügen</span>
             </button>
