@@ -110,28 +110,31 @@ function setupLogoutButton() {
 async function renderLoginArea() {
     try {
         const loginDiv = document.getElementById('login-area');
-        if (!loginDiv) {
-            console.error("login-area nicht gefunden!");
-            return;
-        }
         const appContainer = document.querySelector('.app-container');
-        if (!appContainer) {
-            console.error(".app-container nicht gefunden!");
+        const logoutBtn = document.getElementById('logout-btn');
+        if (!loginDiv || !appContainer) {
+            // Fallback: Immer irgendwas anzeigen!
+            document.body.innerHTML = "<div style='padding:2rem;text-align:center;color:red'>Wichtige App-Elemente fehlen. Bitte Seite neu laden oder Browserdaten löschen.</div>";
             return;
         }
-        const logoutBtn = document.getElementById('logout-btn');
 
+        // Supabase Session prüfen
         const { data: { session }, error } = await supabase.auth.getSession();
+
         if (error) {
-            // Fehler beim Session-Laden → zurück zum Login
-            appContainer.style.display = 'none';
-            loginDiv.innerHTML = "<p>Fehler beim Laden. Bitte Seite neu laden oder erneut einloggen.</p>";
+            // Fehler beim Laden der Session
+            appContainer.style.display = "none";
+            loginDiv.style.display = "";
+            loginDiv.innerHTML = "<p class='text-red-600 text-center mt-10'>Fehler beim Laden der Session.<br>Bitte Seite neu laden oder erneut anmelden.</p>";
             if (logoutBtn) logoutBtn.style.display = "none";
             return;
         }
+
         if (session) {
+            // Eingeloggt: App anzeigen, Login verstecken
             loginDiv.innerHTML = "";
-            appContainer.style.display = '';
+            loginDiv.style.display = "none";
+            appContainer.style.display = "";
             if (logoutBtn) logoutBtn.style.display = "";
             setupLogoutButton();
             setupTabButtons();
@@ -142,42 +145,46 @@ async function renderLoginArea() {
             }
             subscribeAllLiveSync();
         } else {
-        loginDiv.innerHTML = `
-            <div class="flex flex-col items-center mb-3">
-                <img src="assets/logo.png" alt="Logo" class="w-60 h-60 mb-2" />
-            </div>
-            <form id="loginform" class="login-area flex flex-col gap-4">
-                <input type="email" id="email" required placeholder="E-Mail" class="rounded border px-6 py-3 focus:ring focus:ring-blue-200" />
-                <input type="password" id="pw" required placeholder="Passwort" class="rounded border px-6 py-3 focus:ring focus:ring-blue-200" />
-				<div class="flex gap-2 w-full">
-				  <button
-					class="login-btn bg-blue-600 text-white font-bold text-lg md:text-xl py-4 w-full rounded-2xl shadow-lg hover:bg-fuchsia-500 active:scale-95 transition-all duration-150 outline-none ring-2 ring-transparent focus:ring-blue-300"
-					style="min-width:180px;">
-					<i class="fas fa-sign-in-alt mr-2"></i> Login
-				  </button>
-				</div>
-
-            </form>
-        `;
-        appContainer.style.display = 'none';
-        if (logoutBtn) logoutBtn.style.display = "none";
-        liveSyncInitialized = false;
-        tabButtonsInitialized = false;
-        const loginForm = document.getElementById('loginform');
-        if (loginForm) {
-            loginForm.onsubmit = async e => {
-                e.preventDefault();
-                await signIn(email.value, pw.value);
-            };
+            // Nicht eingeloggt: Login-Form anzeigen, App verstecken
+            loginDiv.innerHTML = `
+                <div class="flex flex-col items-center mb-3">
+                    <img src="assets/logo.png" alt="Logo" class="w-60 h-60 mb-2" />
+                </div>
+                <form id="loginform" class="login-area flex flex-col gap-4">
+                    <input type="email" id="email" required placeholder="E-Mail" class="rounded border px-6 py-3 focus:ring focus:ring-blue-200" />
+                    <input type="password" id="pw" required placeholder="Passwort" class="rounded border px-6 py-3 focus:ring focus:ring-blue-200" />
+                    <div class="flex gap-2 w-full">
+                        <button
+                        class="login-btn bg-blue-600 text-white font-bold text-lg md:text-xl py-4 w-full rounded-2xl shadow-lg hover:bg-fuchsia-500 active:scale-95 transition-all duration-150 outline-none ring-2 ring-transparent focus:ring-blue-300"
+                        style="min-width:180px;">
+                        <i class="fas fa-sign-in-alt mr-2"></i> Login
+                        </button>
+                    </div>
+                </form>
+            `;
+            loginDiv.style.display = "";
+            appContainer.style.display = "none";
+            if (logoutBtn) logoutBtn.style.display = "none";
+            liveSyncInitialized = false;
+            tabButtonsInitialized = false;
+            const loginForm = document.getElementById('loginform');
+            if (loginForm) {
+                loginForm.onsubmit = async e => {
+                    e.preventDefault();
+                    await signIn(email.value, pw.value);
+                };
+            }
         }
-		catch(e) {
-        // Unerwarteter Fehler (z.B. korruptes localStorage)
-        document.querySelector('.app-container').style.display = 'none';
-        document.getElementById('login-area').innerHTML = "<p>Interner Fehler. Bitte Browserdaten löschen und Seite neu laden.</p>";
+    } catch(e) {
+        // Fallback für unerwartete Fehler (z.B. kaputtes localStorage)
+        document.body.innerHTML = `<div style='padding:2rem;text-align:center;color:red'>
+            Interner Fehler beim Initialisieren der App.<br>
+            Bitte Browserdaten (Cookies/LocalStorage) löschen und Seite neu laden.<br>
+            <br>
+            <pre style="margin-top:2rem;color:#333;font-size:0.9em;background:#fff3f3;border:1px solid #e0bbbb;padding:1rem;border-radius:.5rem;max-width:600px;overflow-x:auto">${e && e.message ? e.message : e}</pre>
+        </div>`;
         console.error(e);
-		}
-	}
-}
+    }
 }
 
 supabase.auth.onAuthStateChange((_event, _session) => renderLoginArea());
