@@ -11,6 +11,10 @@ let currentTab = "squad";
 let liveSyncInitialized = false;
 let tabButtonsInitialized = false;
 
+
+alert("main.js geladen!");
+console.log("main.js geladen!");
+
 // 4. Dark Mode Toggle
 /*const darkToggle = () => {
     if (document.documentElement.classList.contains('dark')) {
