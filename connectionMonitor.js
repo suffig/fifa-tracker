@@ -15,6 +15,7 @@ class ConnectionMonitor {
         this.reconnectTimer = null;
         this.listeners = [];
         this.lastSuccessfulConnection = Date.now();
+        this.isPaused = false;
         
         this.startHealthCheck();
         this.setupNetworkListeners();
@@ -71,6 +72,11 @@ class ConnectionMonitor {
     }
 
     async attemptReconnection() {
+        if (this.isPaused) {
+            console.log('Skipping reconnection attempt - monitor is paused');
+            return;
+        }
+        
         if (this.reconnectAttempts >= this.maxReconnectAttempts) {
             console.error('Max reconnection attempts reached');
             this.notifyListeners({ 
@@ -81,8 +87,10 @@ class ConnectionMonitor {
             
             // Wait longer before trying again
             this.reconnectTimer = setTimeout(() => {
-                this.reconnectAttempts = 0;
-                this.attemptReconnection();
+                if (!this.isPaused) {
+                    this.reconnectAttempts = 0;
+                    this.attemptReconnection();
+                }
             }, this.maxReconnectDelay);
             
             return;
@@ -93,7 +101,7 @@ class ConnectionMonitor {
         
         const connected = await this.checkConnection();
         
-        if (!connected) {
+        if (!connected && !this.isPaused) {
             // Exponential backoff
             this.reconnectDelay = Math.min(this.reconnectDelay * 2, this.maxReconnectDelay);
             
@@ -105,15 +113,21 @@ class ConnectionMonitor {
             });
             
             this.reconnectTimer = setTimeout(() => {
-                this.attemptReconnection();
+                if (!this.isPaused) {
+                    this.attemptReconnection();
+                }
             }, this.reconnectDelay);
         }
     }
 
     startHealthCheck() {
+        if (this.healthCheckTimer) {
+            clearInterval(this.healthCheckTimer);
+        }
+        
         this.healthCheckTimer = setInterval(async () => {
-            if (!this.isConnected) {
-                return; // Already in reconnection mode
+            if (this.isPaused || !this.isConnected) {
+                return; // Skip health check if paused or already in reconnection mode
             }
             
             const connected = await this.checkConnection();
@@ -121,6 +135,30 @@ class ConnectionMonitor {
                 this.attemptReconnection();
             }
         }, this.healthCheckInterval);
+    }
+
+    pauseHealthChecks() {
+        console.log('Pausing connection health checks');
+        this.isPaused = true;
+        if (this.healthCheckTimer) {
+            clearInterval(this.healthCheckTimer);
+            this.healthCheckTimer = null;
+        }
+        if (this.reconnectTimer) {
+            clearTimeout(this.reconnectTimer);
+            this.reconnectTimer = null;
+        }
+    }
+
+    resumeHealthChecks() {
+        console.log('Resuming connection health checks');
+        this.isPaused = false;
+        this.startHealthCheck();
+        
+        // Check connection immediately when resuming
+        if (!this.isConnected) {
+            this.checkConnection();
+        }
     }
 
     setupNetworkListeners() {

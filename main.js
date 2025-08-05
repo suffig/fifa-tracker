@@ -12,6 +12,8 @@ let currentTab = "squad";
 let liveSyncInitialized = false;
 let tabButtonsInitialized = false;
 let realtimeChannel = null;
+let isAppVisible = true;
+let inactivityCleanupTimer = null;
 
 alert("main.js geladen!");
 console.log("main.js geladen!");
@@ -49,6 +51,49 @@ function updateConnectionStatus(status) {
             indicator.textContent = 'Verbindung verloren';
             indicator.className = indicator.className.replace(/bg-\w+-\d+/g, '') + ' bg-red-500 text-white';
         }
+    }
+}
+
+// Handle app visibility changes to prevent crashes during inactivity
+function handleVisibilityChange() {
+    const wasVisible = isAppVisible;
+    isAppVisible = !document.hidden;
+    
+    if (!isAppVisible && wasVisible) {
+        console.log('App became hidden - pausing expensive operations');
+        
+        // Clean up realtime subscriptions after 5 minutes of inactivity
+        inactivityCleanupTimer = setTimeout(() => {
+            console.log('App inactive for 5 minutes - cleaning up subscriptions');
+            cleanupRealtimeSubscriptions();
+            connectionMonitor.pauseHealthChecks();
+        }, 5 * 60 * 1000); // 5 minutes
+        
+    } else if (isAppVisible && !wasVisible) {
+        console.log('App became visible - resuming operations');
+        
+        // Cancel cleanup timer
+        if (inactivityCleanupTimer) {
+            clearTimeout(inactivityCleanupTimer);
+            inactivityCleanupTimer = null;
+        }
+        
+        // Resume operations
+        connectionMonitor.resumeHealthChecks();
+        
+        // Re-establish subscriptions if needed
+        if (supabase.auth.getSession().then(({data: {session}}) => session)) {
+            subscribeAllLiveSync();
+        }
+    }
+}
+
+function cleanupRealtimeSubscriptions() {
+    if (realtimeChannel) {
+        console.log('Cleaning up realtime subscriptions');
+        supabase.removeChannel(realtimeChannel);
+        realtimeChannel = null;
+        liveSyncInitialized = false;
     }
 }
 
@@ -118,50 +163,48 @@ function setupTabButtons() {
     tabButtonsInitialized = true;
 }
 function subscribeAllLiveSync() {
-    if (liveSyncInitialized) return;
+    if (liveSyncInitialized || !isAppVisible) return;
     
     console.log('Initializing real-time subscriptions...');
     
     // Clean up any existing channel
-    if (realtimeChannel) {
-        supabase.removeChannel(realtimeChannel);
-    }
+    cleanupRealtimeSubscriptions();
     
     realtimeChannel = supabase
         .channel('global_live')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'players' }, (payload) => {
             console.log('Players table changed:', payload);
-            if (isDatabaseAvailable() && document.body.contains(document.getElementById(currentTab + "-tab"))) {
+            if (isDatabaseAvailable() && isAppVisible && document.body.contains(document.getElementById(currentTab + "-tab"))) {
                 renderCurrentTab();
             }
         })
         .on('postgres_changes', { event: '*', schema: 'public', table: 'matches' }, (payload) => {
             console.log('Matches table changed:', payload);
-            if (isDatabaseAvailable() && document.body.contains(document.getElementById(currentTab + "-tab"))) {
+            if (isDatabaseAvailable() && isAppVisible && document.body.contains(document.getElementById(currentTab + "-tab"))) {
                 renderCurrentTab();
             }
         })
         .on('postgres_changes', { event: '*', schema: 'public', table: 'transactions' }, (payload) => {
             console.log('Transactions table changed:', payload);
-            if (isDatabaseAvailable() && document.body.contains(document.getElementById(currentTab + "-tab"))) {
+            if (isDatabaseAvailable() && isAppVisible && document.body.contains(document.getElementById(currentTab + "-tab"))) {
                 renderCurrentTab();
             }
         })
         .on('postgres_changes', { event: '*', schema: 'public', table: 'finances' }, (payload) => {
             console.log('Finances table changed:', payload);
-            if (isDatabaseAvailable() && document.body.contains(document.getElementById(currentTab + "-tab"))) {
+            if (isDatabaseAvailable() && isAppVisible && document.body.contains(document.getElementById(currentTab + "-tab"))) {
                 renderCurrentTab();
             }
         })
         .on('postgres_changes', { event: '*', schema: 'public', table: 'bans' }, (payload) => {
             console.log('Bans table changed:', payload);
-            if (isDatabaseAvailable() && document.body.contains(document.getElementById(currentTab + "-tab"))) {
+            if (isDatabaseAvailable() && isAppVisible && document.body.contains(document.getElementById(currentTab + "-tab"))) {
                 renderCurrentTab();
             }
         })
         .on('postgres_changes', { event: '*', schema: 'public', table: 'spieler_des_spiels' }, (payload) => {
             console.log('Spieler des Spiels table changed:', payload);
-            if (isDatabaseAvailable() && document.body.contains(document.getElementById(currentTab + "-tab"))) {
+            if (isDatabaseAvailable() && isAppVisible && document.body.contains(document.getElementById(currentTab + "-tab"))) {
                 renderCurrentTab();
             }
         })
@@ -175,22 +218,26 @@ function subscribeAllLiveSync() {
                 console.error('Real-time subscription error - attempting to reconnect...');
                 liveSyncInitialized = false;
                 
-                // Attempt to reconnect after a delay
-                setTimeout(() => {
-                    if (!liveSyncInitialized) {
-                        console.log('Attempting to re-establish real-time subscriptions...');
-                        subscribeAllLiveSync();
-                    }
-                }, 5000);
+                // Only attempt to reconnect if app is still visible
+                if (isAppVisible) {
+                    setTimeout(() => {
+                        if (!liveSyncInitialized && isAppVisible) {
+                            console.log('Attempting to re-establish real-time subscriptions...');
+                            subscribeAllLiveSync();
+                        }
+                    }, 5000);
+                }
             } else if (status === 'CLOSED') {
                 console.warn('Real-time subscription closed');
                 liveSyncInitialized = false;
                 
-                // If connection monitor shows we're connected, try to reconnect
-                if (isDatabaseAvailable()) {
+                // If connection monitor shows we're connected and app is visible, try to reconnect
+                if (isDatabaseAvailable() && isAppVisible) {
                     setTimeout(() => {
-                        console.log('Attempting to re-establish real-time subscriptions...');
-                        subscribeAllLiveSync();
+                        if (isAppVisible) {
+                            console.log('Attempting to re-establish real-time subscriptions...');
+                            subscribeAllLiveSync();
+                        }
                     }, 2000);
                 }
             }
@@ -267,6 +314,13 @@ async function renderLoginArea() {
         liveSyncInitialized = false;
         tabButtonsInitialized = false;
         
+        // Clean up subscriptions and timers
+        cleanupRealtimeSubscriptions();
+        if (inactivityCleanupTimer) {
+            clearTimeout(inactivityCleanupTimer);
+            inactivityCleanupTimer = null;
+        }
+        
         // Clean up connection monitoring when logged out
         connectionMonitor.removeListener(updateConnectionStatus);
         
@@ -281,3 +335,15 @@ async function renderLoginArea() {
 }
 supabase.auth.onAuthStateChange((_event, _session) => renderLoginArea());
 window.addEventListener('DOMContentLoaded', renderLoginArea);
+
+// Add visibility change listener to handle app inactivity
+document.addEventListener('visibilitychange', handleVisibilityChange);
+
+// Add page unload cleanup
+window.addEventListener('beforeunload', () => {
+    cleanupRealtimeSubscriptions();
+    if (inactivityCleanupTimer) {
+        clearTimeout(inactivityCleanupTimer);
+    }
+    connectionMonitor.destroy();
+});

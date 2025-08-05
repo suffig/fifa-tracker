@@ -146,18 +146,15 @@ supabase.auth.onAuthStateChange((event, session) => {
   console.log('Auth state changed:', event, session?.user?.email || 'No user');
   
   if (event === 'TOKEN_REFRESHED') {
-    console.log('Auth token refreshed successfully');
+    if (session) {
+      console.log('Auth token refreshed successfully');
+    } else {
+      console.error('Token refresh failed - user may need to re-authenticate');
+    }
   } else if (event === 'SIGNED_OUT') {
     console.log('User signed out');
   } else if (event === 'SIGNED_IN') {
     console.log('User signed in');
-  }
-});
-
-// Monitor for auth errors
-supabase.auth.onAuthStateChange((event, session) => {
-  if (event === 'TOKEN_REFRESHED' && !session) {
-    console.error('Token refresh failed - user may need to re-authenticate');
   }
 });
 
