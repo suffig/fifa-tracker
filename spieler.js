@@ -5,7 +5,7 @@ export async function renderSpielerTab(containerId = "app") {
     app.innerHTML = `
     <div class="mb-4 flex items-center space-x-3">
         <h2 class="text-lg font-semibold flex-1">Spieler-Übersicht</h2>
-        <button id="show-tore" class="transition-all duration-150 bg-gradient-to-r from-blue-400 to-blue-600 text-white font-bold rounded-xl px-4 py-2 shadow-lg hover:from-fuchsia-500 hover:to-blue-400 hover:scale-105 focus:ring-2 focus:ring-blue-300 focus:outline-none">
+        <button id="show-tore" class="transition-all duration-150 bg-gradient-to-r from-blue-400 to-blue-600 text-black font-bold rounded-xl px-4 py-2 shadow-lg hover:from-fuchsia-500 hover:to-blue-400 hover:scale-105 focus:ring-2 focus:ring-blue-300 focus:outline-none">
             <i class="fas fa-futbol mr-2"></i> Torschützen
         </button>
         <button id="show-sds" class="transition-all duration-150 bg-gradient-to-r from-yellow-300 to-yellow-500 text-yellow-900 font-bold rounded-xl px-4 py-2 shadow-lg hover:from-fuchsia-500 hover:to-yellow-400 hover:scale-105 focus:ring-2 focus:ring-yellow-300 focus:outline-none">
