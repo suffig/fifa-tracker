@@ -1,4 +1,5 @@
-import { supabase } from './supabaseClient.js';
+import { supabase, supabaseDb } from './supabaseClient.js';
+import { connectionMonitor, isDatabaseAvailable } from './connectionMonitor.js';
 import { signUp, signIn, signOut } from './auth.js';
 import { renderKaderTab } from './kader.js';
 import { renderBansTab } from './bans.js';
@@ -10,10 +11,46 @@ import { renderSpielerTab } from './spieler.js';
 let currentTab = "squad";
 let liveSyncInitialized = false;
 let tabButtonsInitialized = false;
-
+let realtimeChannel = null;
 
 alert("main.js geladen!");
 console.log("main.js geladen!");
+
+// Connection status indicator
+function updateConnectionStatus(status) {
+    let indicator = document.getElementById('connection-status');
+    if (!indicator) {
+        indicator = document.createElement('div');
+        indicator.id = 'connection-status';
+        indicator.className = 'fixed top-2 right-2 z-50 px-3 py-1 rounded-full text-sm font-medium transition-all duration-300';
+        document.body.appendChild(indicator);
+    }
+    
+    if (status.connected) {
+        indicator.textContent = status.reconnected ? 'Verbindung wiederhergestellt' : 'Online';
+        indicator.className = indicator.className.replace(/bg-\w+-\d+/g, '') + ' bg-green-500 text-white';
+        
+        if (status.reconnected) {
+            setTimeout(() => {
+                indicator.textContent = 'Online';
+            }, 3000);
+        }
+    } else {
+        if (status.networkOffline) {
+            indicator.textContent = 'Offline';
+            indicator.className = indicator.className.replace(/bg-\w+-\d+/g, '') + ' bg-gray-500 text-white';
+        } else if (status.reconnecting) {
+            indicator.textContent = `Verbinde... (${status.attempt}/5)`;
+            indicator.className = indicator.className.replace(/bg-\w+-\d+/g, '') + ' bg-yellow-500 text-white';
+        } else if (status.maxAttemptsReached) {
+            indicator.textContent = 'Verbindung unterbrochen';
+            indicator.className = indicator.className.replace(/bg-\w+-\d+/g, '') + ' bg-red-500 text-white';
+        } else {
+            indicator.textContent = 'Verbindung verloren';
+            indicator.className = indicator.className.replace(/bg-\w+-\d+/g, '') + ' bg-red-500 text-white';
+        }
+    }
+}
 
 // 4. Dark Mode Toggle
 /*const darkToggle = () => {
@@ -82,16 +119,82 @@ function setupTabButtons() {
 }
 function subscribeAllLiveSync() {
     if (liveSyncInitialized) return;
-    supabase
+    
+    console.log('Initializing real-time subscriptions...');
+    
+    // Clean up any existing channel
+    if (realtimeChannel) {
+        supabase.removeChannel(realtimeChannel);
+    }
+    
+    realtimeChannel = supabase
         .channel('global_live')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'players' }, () => { if (document.body.contains(document.getElementById(currentTab + "-tab"))) renderCurrentTab(); })
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'matches' }, () => { if (document.body.contains(document.getElementById(currentTab + "-tab"))) renderCurrentTab(); })
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'transactions' }, () => { if (document.body.contains(document.getElementById(currentTab + "-tab"))) renderCurrentTab(); })
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'finances' }, () => { if (document.body.contains(document.getElementById(currentTab + "-tab"))) renderCurrentTab(); })
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'bans' }, () => { if (document.body.contains(document.getElementById(currentTab + "-tab"))) renderCurrentTab(); })
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'spieler_des_spiels' }, () => { if (document.body.contains(document.getElementById(currentTab + "-tab"))) renderCurrentTab(); })
-        .subscribe();
-    liveSyncInitialized = true;
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'players' }, (payload) => {
+            console.log('Players table changed:', payload);
+            if (isDatabaseAvailable() && document.body.contains(document.getElementById(currentTab + "-tab"))) {
+                renderCurrentTab();
+            }
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'matches' }, (payload) => {
+            console.log('Matches table changed:', payload);
+            if (isDatabaseAvailable() && document.body.contains(document.getElementById(currentTab + "-tab"))) {
+                renderCurrentTab();
+            }
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'transactions' }, (payload) => {
+            console.log('Transactions table changed:', payload);
+            if (isDatabaseAvailable() && document.body.contains(document.getElementById(currentTab + "-tab"))) {
+                renderCurrentTab();
+            }
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'finances' }, (payload) => {
+            console.log('Finances table changed:', payload);
+            if (isDatabaseAvailable() && document.body.contains(document.getElementById(currentTab + "-tab"))) {
+                renderCurrentTab();
+            }
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'bans' }, (payload) => {
+            console.log('Bans table changed:', payload);
+            if (isDatabaseAvailable() && document.body.contains(document.getElementById(currentTab + "-tab"))) {
+                renderCurrentTab();
+            }
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'spieler_des_spiels' }, (payload) => {
+            console.log('Spieler des Spiels table changed:', payload);
+            if (isDatabaseAvailable() && document.body.contains(document.getElementById(currentTab + "-tab"))) {
+                renderCurrentTab();
+            }
+        })
+        .subscribe((status) => {
+            console.log('Real-time subscription status:', status);
+            
+            if (status === 'SUBSCRIBED') {
+                console.log('Real-time subscriptions active');
+                liveSyncInitialized = true;
+            } else if (status === 'CHANNEL_ERROR') {
+                console.error('Real-time subscription error - attempting to reconnect...');
+                liveSyncInitialized = false;
+                
+                // Attempt to reconnect after a delay
+                setTimeout(() => {
+                    if (!liveSyncInitialized) {
+                        console.log('Attempting to re-establish real-time subscriptions...');
+                        subscribeAllLiveSync();
+                    }
+                }, 5000);
+            } else if (status === 'CLOSED') {
+                console.warn('Real-time subscription closed');
+                liveSyncInitialized = false;
+                
+                // If connection monitor shows we're connected, try to reconnect
+                if (isDatabaseAvailable()) {
+                    setTimeout(() => {
+                        console.log('Attempting to re-establish real-time subscriptions...');
+                        subscribeAllLiveSync();
+                    }, 2000);
+                }
+            }
+        });
 }
 
 function setupLogoutButton() {
@@ -131,6 +234,10 @@ async function renderLoginArea() {
         if (logoutBtn) logoutBtn.style.display = "";
         setupLogoutButton();
         setupTabButtons();
+        
+        // Set up connection monitoring
+        connectionMonitor.addListener(updateConnectionStatus);
+        
         if (!tabButtonsInitialized) {
             switchTab(currentTab);
         } else {
@@ -159,6 +266,10 @@ async function renderLoginArea() {
         if (logoutBtn) logoutBtn.style.display = "none";
         liveSyncInitialized = false;
         tabButtonsInitialized = false;
+        
+        // Clean up connection monitoring when logged out
+        connectionMonitor.removeListener(updateConnectionStatus);
+        
         const loginForm = document.getElementById('loginform');
         if (loginForm) {
             loginForm.onsubmit = async e => {
