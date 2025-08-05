@@ -108,32 +108,40 @@ function setupLogoutButton() {
 }
 
 async function renderLoginArea() {
-    const loginDiv = document.getElementById('login-area');
-    if (!loginDiv) {
-        console.error("login-area nicht gefunden!");
-        return;
-    }
-    const appContainer = document.querySelector('.app-container');
-    if (!appContainer) {
-        console.error(".app-container nicht gefunden!");
-        return;
-    }
-    const logoutBtn = document.getElementById('logout-btn');
-
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session) {
-        loginDiv.innerHTML = "";
-        appContainer.style.display = '';
-        if (logoutBtn) logoutBtn.style.display = "";
-        setupLogoutButton();
-        setupTabButtons();
-        if (!tabButtonsInitialized) {
-            switchTab(currentTab);
-        } else {
-            renderCurrentTab();
+    try {
+        const loginDiv = document.getElementById('login-area');
+        if (!loginDiv) {
+            console.error("login-area nicht gefunden!");
+            return;
         }
-        subscribeAllLiveSync();
-    } else {
+        const appContainer = document.querySelector('.app-container');
+        if (!appContainer) {
+            console.error(".app-container nicht gefunden!");
+            return;
+        }
+        const logoutBtn = document.getElementById('logout-btn');
+
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (error) {
+            // Fehler beim Session-Laden → zurück zum Login
+            appContainer.style.display = 'none';
+            loginDiv.innerHTML = "<p>Fehler beim Laden. Bitte Seite neu laden oder erneut einloggen.</p>";
+            if (logoutBtn) logoutBtn.style.display = "none";
+            return;
+        }
+        if (session) {
+            loginDiv.innerHTML = "";
+            appContainer.style.display = '';
+            if (logoutBtn) logoutBtn.style.display = "";
+            setupLogoutButton();
+            setupTabButtons();
+            if (!tabButtonsInitialized) {
+                switchTab(currentTab);
+            } else {
+                renderCurrentTab();
+            }
+            subscribeAllLiveSync();
+        } else {
         loginDiv.innerHTML = `
             <div class="flex flex-col items-center mb-3">
                 <img src="assets/logo.png" alt="Logo" class="w-60 h-60 mb-2" />
@@ -162,7 +170,15 @@ async function renderLoginArea() {
                 await signIn(email.value, pw.value);
             };
         }
-    }
+		catch(e) {
+        // Unerwarteter Fehler (z.B. korruptes localStorage)
+        document.querySelector('.app-container').style.display = 'none';
+        document.getElementById('login-area').innerHTML = "<p>Interner Fehler. Bitte Browserdaten löschen und Seite neu laden.</p>";
+        console.error(e);
+		}
+	}
 }
+}
+
 supabase.auth.onAuthStateChange((_event, _session) => renderLoginArea());
 window.addEventListener('DOMContentLoaded', renderLoginArea);
