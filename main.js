@@ -11,7 +11,28 @@ let currentTab = "squad";
 let liveSyncInitialized = false;
 let tabButtonsInitialized = false;
 
-// Loader anzeigen/ausblenden
+// 4. Dark Mode Toggle
+/*const darkToggle = () => {
+    if (document.documentElement.classList.contains('dark')) {
+        document.documentElement.classList.remove('dark');
+        localStorage.setItem('theme', 'light');
+    } else {
+        document.documentElement.classList.add('dark');
+        localStorage.setItem('theme', 'dark');
+    }
+};
+document.addEventListener('DOMContentLoaded', () => {
+    // Theme beim Laden setzen
+    if (localStorage.getItem('theme') === 'dark' || (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        document.documentElement.classList.add('dark');
+    } else {
+        document.documentElement.classList.remove('dark');
+    }
+    // Toggle-Button Events
+    document.getElementById('dark-toggle')?.addEventListener('click', darkToggle);
+});*/
+
+// 5. Loader anzeigen/ausblenden
 function showTabLoader(show = true) {
     const loader = document.getElementById('tab-loader');
     if (loader) loader.style.display = show ? "flex" : "none";
@@ -30,13 +51,13 @@ function switchTab(tab) {
         desktopTab.classList.add("bg-blue-700","text-white","active-tab","lg:text-blue-700");
         desktopTab.setAttribute("aria-current","page");
     }
+    // 5. Loader anzeigen
     showTabLoader(true);
-    setTimeout(() => {
+    setTimeout(() => { // Simuliere Ladedauer, falls render-Funktion async ist, ggf. anpassen!
         renderCurrentTab();
         showTabLoader(false);
     }, 300);
 }
-
 function renderCurrentTab() {
     if(currentTab==="squad") renderKaderTab("app");
     else if(currentTab==="bans") renderBansTab("app");
@@ -45,7 +66,6 @@ function renderCurrentTab() {
     else if(currentTab==="finanzen") renderFinanzenTab("app");
     else if(currentTab==="spieler") renderSpielerTab("app");
 }
-
 function setupTabButtons() {
     if(tabButtonsInitialized) return;
     document.getElementById("squad-tab")?.addEventListener("click", e => { e.preventDefault(); switchTab("squad"); });
@@ -56,7 +76,6 @@ function setupTabButtons() {
     document.getElementById("spieler-tab")?.addEventListener("click", e => { e.preventDefault(); switchTab("spieler"); });
     tabButtonsInitialized = true;
 }
-
 function subscribeAllLiveSync() {
     if (liveSyncInitialized) return;
     supabase
@@ -89,78 +108,61 @@ function setupLogoutButton() {
 }
 
 async function renderLoginArea() {
-    try {
-        const loginDiv = document.getElementById('login-area');
-        const appContainer = document.querySelector('.app-container');
-        const logoutBtn = document.getElementById('logout-btn');
-        if (!loginDiv || !appContainer) {
-            document.body.innerHTML = "<div style='padding:2rem;text-align:center;color:red'>Wichtige App-Elemente fehlen. Bitte Seite neu laden oder Browserdaten löschen.</div>";
-            return;
-        }
+    const loginDiv = document.getElementById('login-area');
+    if (!loginDiv) {
+        console.error("login-area nicht gefunden!");
+        return;
+    }
+    const appContainer = document.querySelector('.app-container');
+    if (!appContainer) {
+        console.error(".app-container nicht gefunden!");
+        return;
+    }
+    const logoutBtn = document.getElementById('logout-btn');
 
-        const { data: { session }, error } = await supabase.auth.getSession();
-
-        if (error) {
-            appContainer.style.display = "none";
-            loginDiv.style.display = "";
-            loginDiv.innerHTML = "<p class='text-red-600 text-center mt-10'>Fehler beim Laden der Session.<br>Bitte Seite neu laden oder erneut anmelden.</p>";
-            if (logoutBtn) logoutBtn.style.display = "none";
-            return;
-        }
-
-        if (session) {
-            loginDiv.innerHTML = "";
-            loginDiv.style.display = "none";
-            appContainer.style.display = "";
-            if (logoutBtn) logoutBtn.style.display = "";
-            setupLogoutButton();
-            setupTabButtons();
-            if (!tabButtonsInitialized) {
-                switchTab(currentTab);
-            } else {
-                renderCurrentTab();
-            }
-            subscribeAllLiveSync();
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) {
+        loginDiv.innerHTML = "";
+        appContainer.style.display = '';
+        if (logoutBtn) logoutBtn.style.display = "";
+        setupLogoutButton();
+        setupTabButtons();
+        if (!tabButtonsInitialized) {
+            switchTab(currentTab);
         } else {
-            loginDiv.innerHTML = `
-                <div class="flex flex-col items-center mb-3">
-                    <img src="assets/logo.png" alt="Logo" class="w-60 h-60 mb-2" />
-                </div>
-                <form id="loginform" class="login-area flex flex-col gap-4">
-                    <input type="email" id="email" required placeholder="E-Mail" class="rounded border px-6 py-3 focus:ring focus:ring-blue-200" />
-                    <input type="password" id="pw" required placeholder="Passwort" class="rounded border px-6 py-3 focus:ring focus:ring-blue-200" />
-                    <div class="flex gap-2 w-full">
-                        <button
-                        class="login-btn bg-blue-600 text-white font-bold text-lg md:text-xl py-4 w-full rounded-2xl shadow-lg hover:bg-fuchsia-500 active:scale-95 transition-all duration-150 outline-none ring-2 ring-transparent focus:ring-blue-300"
-                        style="min-width:180px;">
-                        <i class="fas fa-sign-in-alt mr-2"></i> Login
-                        </button>
-                    </div>
-                </form>
-            `;
-            loginDiv.style.display = "";
-            appContainer.style.display = "none";
-            if (logoutBtn) logoutBtn.style.display = "none";
-            liveSyncInitialized = false;
-            tabButtonsInitialized = false;
-            const loginForm = document.getElementById('loginform');
-            if (loginForm) {
-                loginForm.onsubmit = async e => {
-                    e.preventDefault();
-                    await signIn(email.value, pw.value);
-                };
-            }
+            renderCurrentTab();
         }
-    } catch(e) {
-        document.body.innerHTML = `<div style='padding:2rem;text-align:center;color:red'>
-            Interner Fehler beim Initialisieren der App.<br>
-            Bitte Browserdaten (Cookies/LocalStorage) löschen und Seite neu laden.<br>
-            <br>
-            <pre style="margin-top:2rem;color:#333;font-size:0.9em;background:#fff3f3;border:1px solid #e0bbbb;padding:1rem;border-radius:.5rem;max-width:600px;overflow-x:auto">${e && e.message ? e.message : e}</pre>
-        </div>`;
-        console.error(e);
+        subscribeAllLiveSync();
+    } else {
+        loginDiv.innerHTML = `
+            <div class="flex flex-col items-center mb-3">
+                <img src="assets/logo.png" alt="Logo" class="w-60 h-60 mb-2" />
+            </div>
+            <form id="loginform" class="login-area flex flex-col gap-4">
+                <input type="email" id="email" required placeholder="E-Mail" class="rounded border px-6 py-3 focus:ring focus:ring-blue-200" />
+                <input type="password" id="pw" required placeholder="Passwort" class="rounded border px-6 py-3 focus:ring focus:ring-blue-200" />
+				<div class="flex gap-2 w-full">
+				  <button
+					class="login-btn bg-blue-600 text-white font-bold text-lg md:text-xl py-4 w-full rounded-2xl shadow-lg hover:bg-fuchsia-500 active:scale-95 transition-all duration-150 outline-none ring-2 ring-transparent focus:ring-blue-300"
+					style="min-width:180px;">
+					<i class="fas fa-sign-in-alt mr-2"></i> Login
+				  </button>
+				</div>
+
+            </form>
+        `;
+        appContainer.style.display = 'none';
+        if (logoutBtn) logoutBtn.style.display = "none";
+        liveSyncInitialized = false;
+        tabButtonsInitialized = false;
+        const loginForm = document.getElementById('loginform');
+        if (loginForm) {
+            loginForm.onsubmit = async e => {
+                e.preventDefault();
+                await signIn(email.value, pw.value);
+            };
+        }
     }
 }
-
 supabase.auth.onAuthStateChange((_event, _session) => renderLoginArea());
 window.addEventListener('DOMContentLoaded', renderLoginArea);
