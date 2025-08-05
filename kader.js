@@ -106,7 +106,6 @@ async function deletePlayerDb(id) {
         throw error;
     }
 }
-}
 
 async function movePlayerWithTransaction(id, newTeam) {
     let all = [...aekAthen, ...realMadrid, ...ehemalige];
