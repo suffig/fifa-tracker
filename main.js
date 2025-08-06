@@ -25,11 +25,9 @@ function updateConnectionStatus(status) {
         indicator.className = 'fixed top-2 right-2 z-50 px-3 py-1 rounded-full text-sm font-medium transition-all duration-300';
         document.body.appendChild(indicator);
     }
-    
     if (status.connected) {
         indicator.textContent = status.reconnected ? 'Verbindung wiederhergestellt' : 'Online';
         indicator.className = indicator.className.replace(/bg-\w+-\d+/g, '') + ' bg-green-500 text-white';
-        
         if (status.reconnected) {
             setTimeout(() => {
                 indicator.textContent = 'Online';
@@ -72,23 +70,18 @@ window.addEventListener('supabase-session-expired', () => {
 function handleVisibilityChange() {
     const wasVisible = isAppVisible;
     isAppVisible = !document.hidden;
-    
+
     if (!isAppVisible && wasVisible) {
-        // Clean up realtime subscriptions after 5 minutes of inactivity
         inactivityCleanupTimer = setTimeout(() => {
             cleanupRealtimeSubscriptions();
             connectionMonitor.pauseHealthChecks();
-        }, 5 * 60 * 1000); // 5 minutes
-        
+        }, 5 * 60 * 1000);
     } else if (isAppVisible && !wasVisible) {
-        // Cancel cleanup timer
         if (inactivityCleanupTimer) {
             clearTimeout(inactivityCleanupTimer);
             inactivityCleanupTimer = null;
         }
-        // Resume operations
         connectionMonitor.resumeHealthChecks();
-        // Re-establish subscriptions if needed
         supabase.auth.getSession().then(({data: {session}}) => {
             if(session) subscribeAllLiveSync();
         });
@@ -103,7 +96,6 @@ function cleanupRealtimeSubscriptions() {
     }
 }
 
-// 5. Loader anzeigen/ausblenden
 function showTabLoader(show = true) {
     const loader = document.getElementById('tab-loader');
     if (loader) loader.style.display = show ? "flex" : "none";
@@ -111,18 +103,15 @@ function showTabLoader(show = true) {
 
 function switchTab(tab) {
     currentTab = tab;
-    // Entferne aktive Klasse von allen Tabs
     document.querySelectorAll('nav a').forEach(btn => {
         btn.classList.remove("bg-blue-700","text-white","active-tab","lg:text-blue-700");
         btn.removeAttribute("aria-current");
     });
-    // Füge aktive Klasse hinzu (Desktop)
     const desktopTab = document.getElementById(tab + "-tab");
     if (desktopTab) {
         desktopTab.classList.add("bg-blue-700","text-white","active-tab","lg:text-blue-700");
         desktopTab.setAttribute("aria-current","page");
     }
-    // 5. Loader anzeigen
     showTabLoader(true);
     setTimeout(() => {
         renderCurrentTab();
@@ -131,12 +120,24 @@ function switchTab(tab) {
 }
 
 function renderCurrentTab() {
-    if(currentTab==="squad") renderKaderTab("app");
-    else if(currentTab==="bans") renderBansTab("app");
-    else if(currentTab==="matches") renderMatchesTab("app");
-    else if(currentTab==="stats") renderStatsTab("app");
-    else if(currentTab==="finanzen") renderFinanzenTab("app");
-    else if(currentTab==="spieler") renderSpielerTab("app");
+    // Abfangen, falls kein App-Container vorhanden ist
+    const appDiv = document.getElementById("app");
+    if (!appDiv) return;
+    appDiv.innerHTML = ""; // leeren, um Fehler zu vermeiden
+    // Robust: Tabs nur anzeigen, wenn Session da
+    supabase.auth.getSession().then(({ data: { session } }) => {
+        if (!session) {
+            appDiv.innerHTML = `<div class="text-red-700 text-center py-6">Nicht angemeldet. Bitte einloggen.</div>`;
+            return;
+        }
+        // Tab-Render
+        if(currentTab==="squad") renderKaderTab("app");
+        else if(currentTab==="bans") renderBansTab("app");
+        else if(currentTab==="matches") renderMatchesTab("app");
+        else if(currentTab==="stats") renderStatsTab("app");
+        else if(currentTab==="finanzen") renderFinanzenTab("app");
+        else if(currentTab==="spieler") renderSpielerTab("app");
+    });
 }
 
 function setupTabButtons() {
@@ -152,63 +153,28 @@ function setupTabButtons() {
 
 function subscribeAllLiveSync() {
     if (liveSyncInitialized || !isAppVisible) return;
-    // Clean up any existing channel
     cleanupRealtimeSubscriptions();
     realtimeChannel = supabase
         .channel('global_live')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'players' }, (payload) => {
-            if (isDatabaseAvailable() && isAppVisible && document.body.contains(document.getElementById(currentTab + "-tab"))) {
-                renderCurrentTab();
-            }
-        })
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'matches' }, (payload) => {
-            if (isDatabaseAvailable() && isAppVisible && document.body.contains(document.getElementById(currentTab + "-tab"))) {
-                renderCurrentTab();
-            }
-        })
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'transactions' }, (payload) => {
-            if (isDatabaseAvailable() && isAppVisible && document.body.contains(document.getElementById(currentTab + "-tab"))) {
-                renderCurrentTab();
-            }
-        })
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'finances' }, (payload) => {
-            if (isDatabaseAvailable() && isAppVisible && document.body.contains(document.getElementById(currentTab + "-tab"))) {
-                renderCurrentTab();
-            }
-        })
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'bans' }, (payload) => {
-            if (isDatabaseAvailable() && isAppVisible && document.body.contains(document.getElementById(currentTab + "-tab"))) {
-                renderCurrentTab();
-            }
-        })
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'spieler_des_spiels' }, (payload) => {
-            if (isDatabaseAvailable() && isAppVisible && document.body.contains(document.getElementById(currentTab + "-tab"))) {
-                renderCurrentTab();
-            }
-        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'players' }, () => renderCurrentTab())
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'matches' }, () => renderCurrentTab())
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'transactions' }, () => renderCurrentTab())
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'finances' }, () => renderCurrentTab())
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'bans' }, () => renderCurrentTab())
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'spieler_des_spiels' }, () => renderCurrentTab())
         .subscribe((status) => {
             if (status === 'SUBSCRIBED') {
                 liveSyncInitialized = true;
             } else if (status === 'CHANNEL_ERROR') {
                 liveSyncInitialized = false;
-                // Only attempt to reconnect if app is still visible
-                if (isAppVisible) {
-                    setTimeout(() => {
-                        if (!liveSyncInitialized && isAppVisible) {
-                            subscribeAllLiveSync();
-                        }
-                    }, 5000);
-                }
+                if (isAppVisible) setTimeout(() => {
+                    if (!liveSyncInitialized && isAppVisible) subscribeAllLiveSync();
+                }, 5000);
             } else if (status === 'CLOSED') {
                 liveSyncInitialized = false;
-                // If connection monitor shows we're connected and app is visible, try to reconnect
-                if (isDatabaseAvailable() && isAppVisible) {
-                    setTimeout(() => {
-                        if (isAppVisible) {
-                            subscribeAllLiveSync();
-                        }
-                    }, 2000);
-                }
+                if (isDatabaseAvailable() && isAppVisible) setTimeout(() => {
+                    if (isAppVisible) subscribeAllLiveSync();
+                }, 2000);
             }
         });
 }
@@ -241,7 +207,6 @@ async function renderLoginArea() {
         return;
     }
     const logoutBtn = document.getElementById('logout-btn');
-
     const { data: { session } } = await supabase.auth.getSession();
     if (session) {
         loginDiv.innerHTML = "";
@@ -249,7 +214,6 @@ async function renderLoginArea() {
         if (logoutBtn) logoutBtn.style.display = "";
         setupLogoutButton();
         setupTabButtons();
-        // Set up connection monitoring
         connectionMonitor.addListener(updateConnectionStatus);
         if (!tabButtonsInitialized) {
             switchTab(currentTab);
@@ -278,13 +242,11 @@ async function renderLoginArea() {
         if (logoutBtn) logoutBtn.style.display = "none";
         liveSyncInitialized = false;
         tabButtonsInitialized = false;
-        // Clean up subscriptions and timers
         cleanupRealtimeSubscriptions();
         if (inactivityCleanupTimer) {
             clearTimeout(inactivityCleanupTimer);
             inactivityCleanupTimer = null;
         }
-        // Clean up connection monitoring when logged out
         connectionMonitor.removeListener(updateConnectionStatus);
         const loginForm = document.getElementById('loginform');
         if (loginForm) {
@@ -296,11 +258,10 @@ async function renderLoginArea() {
     }
 }
 
+// Nur HIER wird der Render-Flow getriggert!
 supabase.auth.onAuthStateChange((_event, _session) => renderLoginArea());
 window.addEventListener('DOMContentLoaded', renderLoginArea);
-// Add visibility change listener to handle app inactivity
 document.addEventListener('visibilitychange', handleVisibilityChange);
-// Add page unload cleanup
 window.addEventListener('beforeunload', () => {
     cleanupRealtimeSubscriptions();
     if (inactivityCleanupTimer) {
