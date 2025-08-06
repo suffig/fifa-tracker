@@ -1,5 +1,6 @@
-import { supabase } from './supabaseClient.js';
-console.log("Bis hier: vor 1");
+import { supabase, supabaseDb } from './supabaseClient.js';
+import { connectionMonitor, isDatabaseAvailable } from './connectionMonitor.js';
+
 import { signUp, signIn, signOut } from './auth.js';
 console.log("Bis hier: vor 2");
 import { renderKaderTab } from './kader.js';
@@ -18,7 +19,9 @@ console.log("Bis hier: vor 8");
 let currentTab = "squad";
 let liveSyncInitialized = false;
 let tabButtonsInitialized = false;
-
+let realtimeChannel = null;
+let isAppVisible = true;
+let inactivityCleanupTimer = null;
 
 alert("main.js geladen!");
 console.log("main.js geladen!");
@@ -27,6 +30,85 @@ window.onerror = function(message, source, lineno, colno, error) {
     console.error("JS-Fehler:", message, source, lineno, colno, error);
 };
 
+
+// Connection status indicator
+function updateConnectionStatus(status) {
+    let indicator = document.getElementById('connection-status');
+    if (!indicator) {
+        indicator = document.createElement('div');
+        indicator.id = 'connection-status';
+        indicator.className = 'fixed top-2 right-2 z-50 px-3 py-1 rounded-full text-sm font-medium transition-all duration-300';
+        document.body.appendChild(indicator);
+    }
+    
+    if (status.connected) {
+        indicator.textContent = status.reconnected ? 'Verbindung wiederhergestellt' : 'Online';
+        indicator.className = indicator.className.replace(/bg-\w+-\d+/g, '') + ' bg-green-500 text-white';
+        
+        if (status.reconnected) {
+            setTimeout(() => {
+                indicator.textContent = 'Online';
+            }, 3000);
+        }
+    } else {
+        if (status.networkOffline) {
+            indicator.textContent = 'Offline';
+            indicator.className = indicator.className.replace(/bg-\w+-\d+/g, '') + ' bg-gray-500 text-white';
+        } else if (status.reconnecting) {
+            indicator.textContent = `Verbinde... (${status.attempt}/5)`;
+            indicator.className = indicator.className.replace(/bg-\w+-\d+/g, '') + ' bg-yellow-500 text-white';
+        } else if (status.maxAttemptsReached) {
+            indicator.textContent = 'Verbindung unterbrochen';
+            indicator.className = indicator.className.replace(/bg-\w+-\d+/g, '') + ' bg-red-500 text-white';
+        } else {
+            indicator.textContent = 'Verbindung verloren';
+            indicator.className = indicator.className.replace(/bg-\w+-\d+/g, '') + ' bg-red-500 text-white';
+        }
+    }
+}
+
+// Handle app visibility changes to prevent crashes during inactivity
+function handleVisibilityChange() {
+    const wasVisible = isAppVisible;
+    isAppVisible = !document.hidden;
+    
+    if (!isAppVisible && wasVisible) {
+        console.log('App became hidden - pausing expensive operations');
+        
+        // Clean up realtime subscriptions after 5 minutes of inactivity
+        inactivityCleanupTimer = setTimeout(() => {
+            console.log('App inactive for 5 minutes - cleaning up subscriptions');
+            cleanupRealtimeSubscriptions();
+            connectionMonitor.pauseHealthChecks();
+        }, 5 * 60 * 1000); // 5 minutes
+        
+    } else if (isAppVisible && !wasVisible) {
+        console.log('App became visible - resuming operations');
+        
+        // Cancel cleanup timer
+        if (inactivityCleanupTimer) {
+            clearTimeout(inactivityCleanupTimer);
+            inactivityCleanupTimer = null;
+        }
+        
+        // Resume operations
+        connectionMonitor.resumeHealthChecks();
+        
+        // Re-establish subscriptions if needed
+        if (supabase.auth.getSession().then(({data: {session}}) => session)) {
+            subscribeAllLiveSync();
+        }
+    }
+}
+
+function cleanupRealtimeSubscriptions() {
+    if (realtimeChannel) {
+        console.log('Cleaning up realtime subscriptions');
+        supabase.removeChannel(realtimeChannel);
+        realtimeChannel = null;
+        liveSyncInitialized = false;
+    }
+}
 
 // 4. Dark Mode Toggle
 /*const darkToggle = () => {
@@ -107,17 +189,85 @@ function setupTabButtons() {
 console.log("Bis hier: vor 13");
 
 function subscribeAllLiveSync() {
-    if (liveSyncInitialized) return;
-    supabase
+    if (liveSyncInitialized || !isAppVisible) return;
+    
+    console.log('Initializing real-time subscriptions...');
+    
+    // Clean up any existing channel
+    cleanupRealtimeSubscriptions();
+    
+    realtimeChannel = supabase
         .channel('global_live')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'players' }, () => { if (document.body.contains(document.getElementById(currentTab + "-tab"))) renderCurrentTab(); })
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'matches' }, () => { if (document.body.contains(document.getElementById(currentTab + "-tab"))) renderCurrentTab(); })
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'transactions' }, () => { if (document.body.contains(document.getElementById(currentTab + "-tab"))) renderCurrentTab(); })
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'finances' }, () => { if (document.body.contains(document.getElementById(currentTab + "-tab"))) renderCurrentTab(); })
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'bans' }, () => { if (document.body.contains(document.getElementById(currentTab + "-tab"))) renderCurrentTab(); })
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'spieler_des_spiels' }, () => { if (document.body.contains(document.getElementById(currentTab + "-tab"))) renderCurrentTab(); })
-        .subscribe();
-    liveSyncInitialized = true;
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'players' }, (payload) => {
+            console.log('Players table changed:', payload);
+            if (isDatabaseAvailable() && isAppVisible && document.body.contains(document.getElementById(currentTab + "-tab"))) {
+                renderCurrentTab();
+            }
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'matches' }, (payload) => {
+            console.log('Matches table changed:', payload);
+            if (isDatabaseAvailable() && isAppVisible && document.body.contains(document.getElementById(currentTab + "-tab"))) {
+                renderCurrentTab();
+            }
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'transactions' }, (payload) => {
+            console.log('Transactions table changed:', payload);
+            if (isDatabaseAvailable() && isAppVisible && document.body.contains(document.getElementById(currentTab + "-tab"))) {
+                renderCurrentTab();
+            }
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'finances' }, (payload) => {
+            console.log('Finances table changed:', payload);
+            if (isDatabaseAvailable() && isAppVisible && document.body.contains(document.getElementById(currentTab + "-tab"))) {
+                renderCurrentTab();
+            }
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'bans' }, (payload) => {
+            console.log('Bans table changed:', payload);
+            if (isDatabaseAvailable() && isAppVisible && document.body.contains(document.getElementById(currentTab + "-tab"))) {
+                renderCurrentTab();
+            }
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'spieler_des_spiels' }, (payload) => {
+            console.log('Spieler des Spiels table changed:', payload);
+            if (isDatabaseAvailable() && isAppVisible && document.body.contains(document.getElementById(currentTab + "-tab"))) {
+                renderCurrentTab();
+            }
+        })
+        .subscribe((status) => {
+            console.log('Real-time subscription status:', status);
+            
+            if (status === 'SUBSCRIBED') {
+                console.log('Real-time subscriptions active');
+                liveSyncInitialized = true;
+            } else if (status === 'CHANNEL_ERROR') {
+                console.error('Real-time subscription error - attempting to reconnect...');
+                liveSyncInitialized = false;
+                
+                // Only attempt to reconnect if app is still visible
+                if (isAppVisible) {
+                    setTimeout(() => {
+                        if (!liveSyncInitialized && isAppVisible) {
+                            console.log('Attempting to re-establish real-time subscriptions...');
+                            subscribeAllLiveSync();
+                        }
+                    }, 5000);
+                }
+            } else if (status === 'CLOSED') {
+                console.warn('Real-time subscription closed');
+                liveSyncInitialized = false;
+                
+                // If connection monitor shows we're connected and app is visible, try to reconnect
+                if (isDatabaseAvailable() && isAppVisible) {
+                    setTimeout(() => {
+                        if (isAppVisible) {
+                            console.log('Attempting to re-establish real-time subscriptions...');
+                            subscribeAllLiveSync();
+                        }
+                    }, 2000);
+                }
+            }
+        });
 }
 
 console.log("Bis hier: vor 14");
@@ -161,6 +311,10 @@ async function renderLoginArea() {
         if (logoutBtn) logoutBtn.style.display = "";
         setupLogoutButton();
         setupTabButtons();
+        
+        // Set up connection monitoring
+        connectionMonitor.addListener(updateConnectionStatus);
+        
         if (!tabButtonsInitialized) {
             switchTab(currentTab);
         } else {
@@ -189,6 +343,17 @@ async function renderLoginArea() {
         if (logoutBtn) logoutBtn.style.display = "none";
         liveSyncInitialized = false;
         tabButtonsInitialized = false;
+        
+        // Clean up subscriptions and timers
+        cleanupRealtimeSubscriptions();
+        if (inactivityCleanupTimer) {
+            clearTimeout(inactivityCleanupTimer);
+            inactivityCleanupTimer = null;
+        }
+        
+        // Clean up connection monitoring when logged out
+        connectionMonitor.removeListener(updateConnectionStatus);
+        
         const loginForm = document.getElementById('loginform');
         if (loginForm) {
             loginForm.onsubmit = async e => {
@@ -202,5 +367,16 @@ async function renderLoginArea() {
 console.log("Bis hier: vor 16");
 
 supabase.auth.onAuthStateChange((_event, _session) => renderLoginArea());
-console.log("Bis hier: vor 17");
 window.addEventListener('DOMContentLoaded', renderLoginArea);
+
+// Add visibility change listener to handle app inactivity
+document.addEventListener('visibilitychange', handleVisibilityChange);
+
+// Add page unload cleanup
+window.addEventListener('beforeunload', () => {
+    cleanupRealtimeSubscriptions();
+    if (inactivityCleanupTimer) {
+        clearTimeout(inactivityCleanupTimer);
+    }
+    connectionMonitor.destroy();
+});

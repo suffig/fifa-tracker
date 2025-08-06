@@ -1,6 +1,7 @@
-import { POSITIONEN } from './data.js';
+import { POSITIONEN, savePlayer as dataSavePlayer, deletePlayer as dataDeletePlayer } from './data.js';
 import { showModal, hideModal } from './modal.js';
-import { supabase } from './supabaseClient.js';
+import { supabaseDb, supabase } from './supabaseClient.js';
+import { isDatabaseAvailable } from './connectionMonitor.js';
 
 let aekAthen = [];
 let realMadrid = [];
@@ -17,37 +18,93 @@ const POSITION_ORDER = {
 };
 
 async function loadPlayersAndFinances(renderFn = renderPlayerLists) {
-    const { data: players } = await supabase.from('players').select('*');
-    aekAthen = players ? players.filter(p => p.team === "AEK") : [];
-    realMadrid = players ? players.filter(p => p.team === "Real") : [];
-    ehemalige = players ? players.filter(p => p.team === "Ehemalige") : [];
-    const { data: finData } = await supabase.from('finances').select('*');
-    finances = {
-        aekAthen: finData?.find(f => f.team === "AEK") || { balance: 0 },
-        realMadrid: finData?.find(f => f.team === "Real") || { balance: 0 }
-    };
-    const { data: transData } = await supabase.from('transactions').select('*').order('id', { ascending: false });
-    transactions = transData || [];
-    renderFn();
+    try {
+        // Show loading indicator
+        const loadingDiv = document.createElement('div');
+        loadingDiv.innerHTML = '<div class="text-center py-4"><i class="fas fa-spinner fa-spin"></i> Lade Daten...</div>';
+        const appDiv = document.getElementById('app');
+        if (appDiv) appDiv.appendChild(loadingDiv);
+
+        // Use enhanced database operations with retry logic
+        const [playersResult, finResult, transResult] = await Promise.allSettled([
+            supabaseDb.select('players', '*'),
+            supabaseDb.select('finances', '*'),
+            supabaseDb.select('transactions', '*', { 
+                order: { column: 'id', ascending: false } 
+            })
+        ]);
+
+        // Handle players data
+        if (playersResult.status === 'fulfilled' && playersResult.value.data) {
+            const players = playersResult.value.data;
+            aekAthen = players.filter(p => p.team === "AEK");
+            realMadrid = players.filter(p => p.team === "Real");
+            ehemalige = players.filter(p => p.team === "Ehemalige");
+        } else {
+            console.warn('Failed to load players:', playersResult.reason);
+            // Keep existing data if available
+        }
+
+        // Handle finances data
+        if (finResult.status === 'fulfilled' && finResult.value.data) {
+            const finData = finResult.value.data;
+            finances = {
+                aekAthen: finData.find(f => f.team === "AEK") || { balance: 0 },
+                realMadrid: finData.find(f => f.team === "Real") || { balance: 0 }
+            };
+        } else {
+            console.warn('Failed to load finances:', finResult.reason);
+        }
+
+        // Handle transactions data
+        if (transResult.status === 'fulfilled' && transResult.value.data) {
+            transactions = transResult.value.data;
+        } else {
+            console.warn('Failed to load transactions:', transResult.reason);
+        }
+
+        // Remove loading indicator
+        if (loadingDiv.parentNode) {
+            loadingDiv.parentNode.removeChild(loadingDiv);
+        }
+
+        renderFn();
+    } catch (error) {
+        console.error('Error loading data:', error);
+        
+        // Show error message to user
+        const errorDiv = document.createElement('div');
+        errorDiv.innerHTML = `
+            <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+                <strong>Fehler beim Laden der Daten.</strong> 
+                ${isDatabaseAvailable() ? 'Bitte versuchen Sie es erneut.' : 'Keine Datenbankverbindung.'}
+                <button onclick="this.parentElement.remove()" class="float-right font-bold">×</button>
+            </div>
+        `;
+        const appDiv = document.getElementById('app');
+        if (appDiv) appDiv.insertBefore(errorDiv, appDiv.firstChild);
+        
+        // Still render with existing data
+        renderFn();
+    }
 }
 
 async function savePlayer(player) {
-    if (player.id) {
-        const { error } = await supabase.from('players').update({
-            name: player.name, team: player.team, position: player.position, value: player.value
-        }).eq('id', player.id);
-        if (error) alert('Fehler beim Speichern: ' + error.message);
-    } else {
-        const { error } = await supabase.from('players').insert([{
-            name: player.name, team: player.team, position: player.position, value: player.value
-        }]);
-        if (error) alert('Fehler beim Anlegen: ' + error.message);
+    try {
+        await dataSavePlayer(player);
+    } catch (error) {
+        alert(error.message);
+        throw error;
     }
 }
 
 async function deletePlayerDb(id) {
-    const { error } = await supabase.from('players').delete().eq('id', id);
-    if (error) alert('Fehler beim Löschen: ' + error.message);
+    try {
+        await dataDeletePlayer(id);
+    } catch (error) {
+        alert(error.message);
+        throw error;
+    }
 }
 
 async function movePlayerWithTransaction(id, newTeam) {
