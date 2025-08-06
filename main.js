@@ -1,12 +1,20 @@
 import { supabase, supabaseDb } from './supabaseClient.js';
 import { connectionMonitor, isDatabaseAvailable } from './connectionMonitor.js';
+
 import { signUp, signIn, signOut } from './auth.js';
+console.log("Bis hier: vor 2");
 import { renderKaderTab } from './kader.js';
+console.log("Bis hier: vor 3");
 import { renderBansTab } from './bans.js';
+console.log("Bis hier: vor 4");
 import { renderMatchesTab } from './matches.js';
+console.log("Bis hier: vor 5");
 import { renderStatsTab } from './stats.js';
+console.log("Bis hier: vor 6");
 import { renderFinanzenTab } from './finanzen.js';
+console.log("Bis hier: vor 7");
 import { renderSpielerTab } from './spieler.js';
+console.log("Bis hier: vor 8");
 
 let currentTab = "squad";
 let liveSyncInitialized = false;
@@ -17,6 +25,11 @@ let inactivityCleanupTimer = null;
 
 alert("main.js geladen!");
 console.log("main.js geladen!");
+window.onerror = function(message, source, lineno, colno, error) {
+    alert("JS-Fehler: " + message + "\n" + source + ":" + lineno + ":" + colno);
+    console.error("JS-Fehler:", message, source, lineno, colno, error);
+};
+
 
 // Connection status indicator
 function updateConnectionStatus(status) {
@@ -118,11 +131,15 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('dark-toggle')?.addEventListener('click', darkToggle);
 });*/
 
+console.log("Bis hier: vor 9");
+
 // 5. Loader anzeigen/ausblenden
 function showTabLoader(show = true) {
     const loader = document.getElementById('tab-loader');
     if (loader) loader.style.display = show ? "flex" : "none";
 }
+
+console.log("Bis hier: vor 10");
 
 function switchTab(tab) {
     currentTab = tab;
@@ -144,6 +161,9 @@ function switchTab(tab) {
         showTabLoader(false);
     }, 300);
 }
+
+console.log("Bis hier: vor 11");
+
 function renderCurrentTab() {
     if(currentTab==="squad") renderKaderTab("app");
     else if(currentTab==="bans") renderBansTab("app");
@@ -152,6 +172,9 @@ function renderCurrentTab() {
     else if(currentTab==="finanzen") renderFinanzenTab("app");
     else if(currentTab==="spieler") renderSpielerTab("app");
 }
+
+console.log("Bis hier: vor 12");
+
 function setupTabButtons() {
     if(tabButtonsInitialized) return;
     document.getElementById("squad-tab")?.addEventListener("click", e => { e.preventDefault(); switchTab("squad"); });
@@ -162,6 +185,9 @@ function setupTabButtons() {
     document.getElementById("spieler-tab")?.addEventListener("click", e => { e.preventDefault(); switchTab("spieler"); });
     tabButtonsInitialized = true;
 }
+
+console.log("Bis hier: vor 13");
+
 function subscribeAllLiveSync() {
     if (liveSyncInitialized || !isAppVisible) return;
     
@@ -244,6 +270,8 @@ function subscribeAllLiveSync() {
         });
 }
 
+console.log("Bis hier: vor 14");
+
 function setupLogoutButton() {
     const logoutBtn = document.getElementById('logout-btn');
     if (logoutBtn) {
@@ -260,6 +288,8 @@ function setupLogoutButton() {
         };
     }
 }
+
+console.log("Bis hier: vor 15");
 
 async function renderLoginArea() {
     const loginDiv = document.getElementById('login-area');
@@ -333,6 +363,9 @@ async function renderLoginArea() {
         }
     }
 }
+
+console.log("Bis hier: vor 16");
+
 supabase.auth.onAuthStateChange((_event, _session) => renderLoginArea());
 window.addEventListener('DOMContentLoaded', renderLoginArea);
 
