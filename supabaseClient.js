@@ -150,6 +150,7 @@ supabase.auth.onAuthStateChange((event, session) => {
       console.log('Auth token refreshed successfully');
     } else {
       console.error('Token refresh failed - user may need to re-authenticate');
+	  document.getElementById('app').innerHTML = '<div class="text-red-600 p-6 text-center">Deine Sitzung ist abgelaufen. Bitte <a href="#" onclick="window.location.reload()">lade die Seite neu</a> oder melde dich erneut an.</div>';
     }
   } else if (event === 'SIGNED_OUT') {
     console.log('User signed out');
