@@ -145,6 +145,14 @@ export const supabaseDb = new SupabaseWrapper(supabase);
 supabase.auth.onAuthStateChange((event, session) => {
   console.log('Auth state changed:', event, session?.user?.email || 'No user');
   
+   try {
+        renderLoginArea();
+    } catch(e) {
+        document.body.innerHTML = `<div style="color:red;padding:2rem;text-align:center">
+          Fehler beim Rendern: ${e.message}
+        </div>`;
+    }
+  
   if (event === 'TOKEN_REFRESHED') {
     if (session) {
       console.log('Auth token refreshed successfully');

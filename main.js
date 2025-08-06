@@ -232,9 +232,14 @@ function setupLogoutButton() {
 
 async function renderLoginArea() {
     const loginDiv = document.getElementById('login-area');
-    if (!loginDiv) return;
     const appContainer = document.querySelector('.app-container');
-    if (!appContainer) return;
+    if (!loginDiv || !appContainer) {
+        document.body.innerHTML = `<div style="color:red;padding:2rem;text-align:center">
+          Kritischer Fehler: UI-Container nicht gefunden.<br>
+          Bitte Seite neu laden oder Admin kontaktieren.
+        </div>`;
+        return;
+    }
     const logoutBtn = document.getElementById('logout-btn');
 
     const { data: { session } } = await supabase.auth.getSession();
