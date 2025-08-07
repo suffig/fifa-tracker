@@ -1,6 +1,6 @@
 import { showModal, hideModal } from './modal.js';
 import { decrementBansAfterMatch } from './bans.js';
-import { supabase } from './supabaseClient.js';
+import { nhost } from './nhostClient.js';
 
 // Globale Daten
 let matches = [];
@@ -23,22 +23,30 @@ export function getAppMatchNumber(matchId) {
 }
 
 async function loadAllData(renderFn = renderMatchesList) {
-    const { data: matchesData } = await supabase.from('matches').select('*').order('id', { ascending: false });
-    matches = matchesData || [];
-    const { data: players } = await supabase.from('players').select('*');
-    aekAthen = players ? players.filter(p => p.team === "AEK") : [];
-    realMadrid = players ? players.filter(p => p.team === "Real") : [];
-    const { data: bansData } = await supabase.from('bans').select('*');
-    bans = bansData || [];
-    const { data: finData } = await supabase.from('finances').select('*');
+    const matchesResult = await nhost.graphql.request('query { matches(order_by: {id: desc}) { id date team1 team2 score1 score2 created_at updated_at } }');
+    matches = matchesResult.data?.matches || [];
+    
+    const playersResult = await nhost.graphql.request('query { players { id name team position value goals created_at updated_at } }');
+    const players = playersResult.data?.players || [];
+    aekAthen = players.filter(p => p.team === "AEK");
+    realMadrid = players.filter(p => p.team === "Real");
+    
+    const bansResult = await nhost.graphql.request('query { bans { id player_id team type totalgames matchesserved created_at updated_at } }');
+    bans = bansResult.data?.bans || [];
+    
+    const financesResult = await nhost.graphql.request('query { finances { id team balance created_at updated_at } }');
+    const finData = financesResult.data?.finances || [];
     finances = {
-        aekAthen: finData?.find(f => f.team === "AEK") || { balance: 0 },
-        realMadrid: finData?.find(f => f.team === "Real") || { balance: 0 }
+        aekAthen: finData.find(f => f.team === "AEK") || { balance: 0 },
+        realMadrid: finData.find(f => f.team === "Real") || { balance: 0 }
     };
-    const { data: sdsData } = await supabase.from('spieler_des_spiels').select('*');
-    spielerDesSpiels = sdsData || [];
-    const { data: transData } = await supabase.from('transactions').select('*').order('id', { ascending: false });
-    transactions = transData || [];
+    
+    const sdsResult = await nhost.graphql.request('query { spieler_des_spiels { id match_id player_id name team created_at updated_at } }');
+    spielerDesSpiels = sdsResult.data?.spieler_des_spiels || [];
+    
+    const transResult = await nhost.graphql.request('query { transactions(order_by: {id: desc}) { id team amount description created_at updated_at } }');
+    transactions = transResult.data?.transactions || [];
+    
     renderFn();
 }
 
@@ -60,14 +68,22 @@ export function renderMatchesTab(containerId = "app") {
 let matchesChannel;
 function subscribeMatches(renderFn = renderMatchesList) {
     if (matchesChannel) return;
-    matchesChannel = supabase
-        .channel('matches_live')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'matches' }, () => loadAllData(renderFn))
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'spieler_des_spiels' }, () => loadAllData(renderFn))
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'finances' }, () => loadAllData(renderFn))
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'players' }, () => loadAllData(renderFn))
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'transactions' }, () => loadAllData(renderFn))
-        .subscribe();
+    
+    // Use GraphQL subscription for real-time updates
+    const subscription = `
+      subscription {
+        matches { id date team1 team2 score1 score2 }
+        spieler_des_spiels { id match_id player_id }
+        finances { id team balance }
+        players { id name team goals }
+        transactions { id team amount description }
+      }
+    `;
+    
+    matchesChannel = nhost.graphql.subscribe(subscription, {}, {
+        onData: () => loadAllData(renderFn),
+        onError: (error) => console.error('Matches subscription error:', error)
+    });
 }
 
 let matchViewDate = new Date().toISOString().slice(0, 10); // Standard: heute
@@ -371,12 +387,26 @@ async function updatePlayersGoals(goalslist, team) {
     for (const scorer of goalslist) {
         if (!scorer.player) continue;
         // Spieler laden, aktueller Stand
-        const { data: player } = await supabase.from('players').select('goals').eq('name', scorer.player).eq('team', team).single();
+        const query = `query { players(where: {name: {_eq: "${scorer.player}"}, team: {_eq: "${team}"}}) { goals } }`;
+        const result = await nhost.graphql.request(query);
+        const player = result.data?.players?.[0];
+        
         let newGoals = scorer.count;
         if (player && typeof player.goals === 'number') {
             newGoals = player.goals + scorer.count;
         }
-        await supabase.from('players').update({ goals: newGoals }).eq('name', scorer.player).eq('team', team);
+        
+        const mutation = `
+            mutation {
+                update_players(
+                    where: {name: {_eq: "${scorer.player}"}, team: {_eq: "${team}"}}, 
+                    _set: {goals: ${newGoals}}
+                ) {
+                    returning { id }
+                }
+            }
+        `;
+        await nhost.graphql.request(mutation);
     }
 }
 
@@ -447,21 +477,72 @@ async function submitMatchForm(event, id) {
     // Spieler des Spiels-Statistik (Tabelle spieler_des_spiels)
     if (manofthematch) {
         let t = aekAthen.find(p => p.name === manofthematch) ? "AEK" : "Real";
-        const { data: existing } = await supabase.from('spieler_des_spiels').select('*').eq('name', manofthematch).eq('team', t);
-        if (existing && existing.length > 0) {
-            await supabase.from('spieler_des_spiels').update({ count: existing[0].count + 1 }).eq('id', existing[0].id);
+        const query = `query { spieler_des_spiels(where: {name: {_eq: "${manofthematch}"}, team: {_eq: "${t}"}}) { id count } }`;
+        const result = await nhost.graphql.request(query);
+        const existing = result.data?.spieler_des_spiels || [];
+        
+        if (existing.length > 0) {
+            const mutation = `
+                mutation {
+                    update_spieler_des_spiels(
+                        where: {id: {_eq: ${existing[0].id}}}, 
+                        _set: {count: ${existing[0].count + 1}}
+                    ) {
+                        returning { id }
+                    }
+                }
+            `;
+            await nhost.graphql.request(mutation);
         } else {
-            await supabase.from('spieler_des_spiels').insert([{ name: manofthematch, team: t, count: 1 }]);
+            const mutation = `
+                mutation {
+                    insert_spieler_des_spiels(objects: [{
+                        name: "${manofthematch}", 
+                        team: "${t}", 
+                        count: 1
+                    }]) {
+                        returning { id }
+                    }
+                }
+            `;
+            await nhost.graphql.request(mutation);
         }
     }
 
     // Edit-Modus: Vorherigen Match löschen (und zugehörige Transaktionen an diesem Tag!)
     if (id && matches.find(m => m.id === id)) {
-        const { data: matchOld } = await supabase.from('matches').select('date').eq('id', id).single();
+        const matchQuery = `query { matches(where: {id: {_eq: ${id}}}) { date } }`;
+        const matchResult = await nhost.graphql.request(matchQuery);
+        const matchOld = matchResult.data?.matches?.[0];
+        
         if (matchOld && matchOld.date) {
-            await supabase.from('transactions').delete().or(`type.eq.Preisgeld,type.eq.Bonus SdS,type.eq.Echtgeld-Ausgleich`).eq('date', matchOld.date);
+            const deleteMutation = `
+                mutation {
+                    delete_transactions(where: {
+                        _and: [
+                            {date: {_eq: "${matchOld.date}"}},
+                            {_or: [
+                                {type: {_eq: "Preisgeld"}},
+                                {type: {_eq: "Bonus SdS"}},
+                                {type: {_eq: "Echtgeld-Ausgleich"}}
+                            ]}
+                        ]
+                    }) {
+                        returning { id }
+                    }
+                }
+            `;
+            await nhost.graphql.request(deleteMutation);
         }
-        await supabase.from('matches').delete().eq('id', id);
+        
+        const deleteMatchMutation = `
+            mutation {
+                delete_matches(where: {id: {_eq: ${id}}}) {
+                    returning { id }
+                }
+            }
+        `;
+        await nhost.graphql.request(deleteMatchMutation);
     }
 
     // Save Match (JSON für goalslista/goalslistb)
@@ -483,17 +564,37 @@ async function submitMatchForm(event, id) {
     };
 
     // Insert Match und ID zurückgeben
-    const { data: inserted, error } = await supabase
-        .from('matches')
-        .insert([insertObj])
-        .select('id')
-        .single();
-    if (error) {
-        alert('Fehler beim Insert: ' + error.message);
-        console.error(error);
+    const matchMutation = `
+        mutation {
+            insert_matches(objects: [{
+                date: "${insertObj.date}",
+                team1: "${insertObj.teama}",
+                team2: "${insertObj.teamb}",
+                score1: ${insertObj.goalsa},
+                score2: ${insertObj.goalsb},
+                goalslista: "${JSON.stringify(insertObj.goalslista).replace(/"/g, '\\"')}",
+                goalslistb: "${JSON.stringify(insertObj.goalslistb).replace(/"/g, '\\"')}",
+                yellowa: ${insertObj.yellowa || 0},
+                reda: ${insertObj.reda || 0},
+                yellowb: ${insertObj.yellowb || 0},
+                redb: ${insertObj.redb || 0},
+                manofthematch: "${insertObj.manofthematch || ''}",
+                prizeaek: ${insertObj.prizeaek || 0},
+                prizereal: ${insertObj.prizereal || 0}
+            }]) {
+                returning {
+                    id
+                }
+            }
+        }
+    `;
+    const insertResult = await nhost.graphql.request(matchMutation);
+    if (insertResult.error) {
+        alert('Fehler beim Insert: ' + insertResult.error.message);
+        console.error(insertResult.error);
         return;
     }
-    const matchId = inserted?.id;
+    const matchId = insertResult.data?.insert_matches?.returning?.[0]?.id;
 
     // Nach Insert: ALLE Daten laden (damit matches aktuell ist)
     await loadAllData(() => {});
@@ -511,7 +612,9 @@ async function submitMatchForm(event, id) {
     const now = new Date().toISOString().slice(0,10);
 
     async function getTeamFinance(team) {
-        const { data } = await supabase.from('finances').select('balance').eq('team', team).single();
+        const query = `query { finances(where: {team: {_eq: "${team}"}}) { balance } }`;
+        const result = await nhost.graphql.request(query);
+        const data = result.data?.finances?.[0];
         return (data && typeof data.balance === "number") ? data.balance : 0;
     }
 
@@ -521,18 +624,67 @@ async function submitMatchForm(event, id) {
     let aekNewBalance = aekOldBalance + (prizeaek || 0) + (sdsBonusAek || 0);
     let realNewBalance = realOldBalance + (prizereal || 0) + (sdsBonusReal || 0);
 
+    // Helper function to insert transaction and update finance balance
+    async function insertTransactionAndUpdateBalance(team, type, amount, match_id, info) {
+        const transMutation = `
+            mutation {
+                insert_transactions(objects: [{
+                    date: "${now}",
+                    type: "${type}",
+                    team: "${team}",
+                    amount: ${amount},
+                    match_id: ${match_id || 'null'},
+                    info: "${info || ''}"
+                }]) {
+                    returning { id }
+                }
+            }
+        `;
+        await nhost.graphql.request(transMutation);
+        
+        const finMutation = `
+            mutation {
+                update_finances(
+                    where: {team: {_eq: "${team}"}}, 
+                    _set: {balance: ${team === "AEK" ? "aekOldBalance" : "realOldBalance"}}
+                ) {
+                    returning { id }
+                }
+            }
+        `;
+        await nhost.graphql.request(finMutation);
+    }
+
     // 1. SdS Bonus
     if (sdsBonusAek) {
         aekOldBalance += sdsBonusAek;
-        await supabase.from('transactions').insert([{
-            date: now,
-            type: "Bonus SdS",
-            team: "AEK",
-            amount: sdsBonusAek,
-            match_id: matchId,
-            info: `Match #${appMatchNr}`
-        }]);
-        await supabase.from('finances').update({ balance: aekOldBalance }).eq('team', "AEK");
+        const transMutation = `
+            mutation {
+                insert_transactions(objects: [{
+                    date: "${now}",
+                    type: "Bonus SdS",
+                    team: "AEK",
+                    amount: ${sdsBonusAek},
+                    match_id: ${matchId || 'null'},
+                    info: "Match #${appMatchNr}"
+                }]) {
+                    returning { id }
+                }
+            }
+        `;
+        await nhost.graphql.request(transMutation);
+        
+        const finMutation = `
+            mutation {
+                update_finances(
+                    where: {team: {_eq: "AEK"}}, 
+                    _set: {balance: ${aekOldBalance}}
+                ) {
+                    returning { id }
+                }
+            }
+        `;
+        await nhost.graphql.request(finMutation);
     }
     if (sdsBonusReal) {
         realOldBalance += sdsBonusReal;

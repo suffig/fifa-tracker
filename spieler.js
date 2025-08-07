@@ -1,4 +1,4 @@
-import { supabase } from './supabaseClient.js';
+import { nhost } from './nhostClient.js';
 
 export async function renderSpielerTab(containerId = "app") {
     const app = document.getElementById(containerId);
@@ -37,12 +37,13 @@ export async function renderSpielerTab(containerId = "app") {
 
     async function renderTorschuetzen() {
         // Spieler laden
-        const { data: players, error: errP } = await supabase.from('players').select('*');
-        if (errP) {
+        const result = await nhost.graphql.request('query { players { id name team goals } }');
+        if (result.error) {
             document.getElementById('spieler-content').innerHTML =
-                `<div class="text-red-700 p-4">Fehler beim Laden der Daten: ${errP?.message || ''}</div>`;
+                `<div class="text-red-700 p-4">Fehler beim Laden der Daten: ${result.error?.message || ''}</div>`;
             return;
         }
+        const players = result.data?.players || [];
 
         let scorerArr = (players || [])
             .filter(p => p.goals && p.goals > 0)
@@ -123,14 +124,16 @@ export async function renderSpielerTab(containerId = "app") {
     }
 
     async function renderSdS() {
-        const { data: sdsArr, error } = await supabase.from('spieler_des_spiels').select('*');
-        if (error) {
+        const result = await nhost.graphql.request('query { spieler_des_spiels { id name team count } }');
+        if (result.error) {
             document.getElementById('spieler-content').innerHTML =
-                `<div class="text-red-700 p-4">Fehler beim Laden der Spieler des Spiels: ${error.message}</div>`;
+                `<div class="text-red-700 p-4">Fehler beim Laden der Spieler des Spiels: ${result.error.message}</div>`;
             return;
         }
+        const sdsArr = result.data?.spieler_des_spiels || [];
         // Hole alle Spieler für aktuelle Teams
-        const { data: players } = await supabase.from('players').select('name, team');
+        const playersResult = await nhost.graphql.request('query { players { name team } }');
+        const players = playersResult.data?.players || [];
         let arr = [...sdsArr].sort((a, b) => b.count - a.count);
 
         // Team immer aktuell aus players, fallback auf SdS-Tabelle

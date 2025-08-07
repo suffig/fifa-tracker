@@ -1,6 +1,6 @@
 import { POSITIONEN, savePlayer as dataSavePlayer, deletePlayer as dataDeletePlayer } from './data.js';
 import { showModal, hideModal } from './modal.js';
-import { supabaseDb, supabase } from './supabaseClient.js';
+import { nhostDb, nhost } from './nhostClient.js';
 import { isDatabaseAvailable } from './connectionMonitor.js';
 
 let aekAthen = [];
@@ -27,9 +27,9 @@ async function loadPlayersAndFinances(renderFn = renderPlayerLists) {
 
         // Use enhanced database operations with retry logic
         const [playersResult, finResult, transResult] = await Promise.allSettled([
-            supabaseDb.select('players', '*'),
-            supabaseDb.select('finances', '*'),
-            supabaseDb.select('transactions', '*', { 
+            nhostDb.select('players', '*'),
+            nhostDb.select('finances', '*'),
+            nhostDb.select('transactions', '*', { 
                 order: { column: 'id', ascending: false } 
             })
         ]);
@@ -119,17 +119,33 @@ async function movePlayerWithTransaction(id, newTeam) {
 
     // Von TEAM zu Ehemalige: VERKAUF
     if ((oldTeam === "AEK" || oldTeam === "Real") && newTeam === "Ehemalige") {
-        await supabase.from('transactions').insert([{
-            date: now,
-            type: "Spielerverkauf",
-            team: oldTeam,
-            amount: abloese,
-            info: `Verkauf von ${player.name} (${player.position})`
-        }]);
+        const mutation = `
+            mutation {
+                insert_transactions(objects: [{
+                    date: "${now}",
+                    type: "Spielerverkauf",
+                    team: "${oldTeam}",
+                    amount: ${abloese},
+                    info: "Verkauf von ${player.name} (${player.position})"
+                }]) {
+                    returning { id }
+                }
+            }
+        `;
+        await nhost.graphql.request(mutation);
+        
         let finKey = oldTeam === "AEK" ? "aekAthen" : "realMadrid";
-        await supabase.from('finances').update({
-            balance: (finances[finKey].balance || 0) + abloese
-        }).eq('team', oldTeam);
+        const finMutation = `
+            mutation {
+                update_finances(
+                    where: {team: {_eq: "${oldTeam}"}}, 
+                    _set: {balance: ${(finances[finKey].balance || 0) + abloese}}
+                ) {
+                    returning { id }
+                }
+            }
+        `;
+        await nhost.graphql.request(finMutation);
         await movePlayerToTeam(id, newTeam);
         return;
     }
@@ -142,16 +158,32 @@ async function movePlayerWithTransaction(id, newTeam) {
             alert("Kontostand zu gering für diesen Transfer!");
             return;
         }
-        await supabase.from('transactions').insert([{
-            date: now,
-            type: "Spielerkauf",
-            team: newTeam,
-            amount: -abloese,
-            info: `Kauf von ${player.name} (${player.position})`
-        }]);
-        await supabase.from('finances').update({
-            balance: konto - abloese
-        }).eq('team', newTeam);
+        const mutation = `
+            mutation {
+                insert_transactions(objects: [{
+                    date: "${now}",
+                    type: "Spielerkauf",
+                    team: "${newTeam}",
+                    amount: ${-abloese},
+                    info: "Kauf von ${player.name} (${player.position})"
+                }]) {
+                    returning { id }
+                }
+            }
+        `;
+        await nhost.graphql.request(mutation);
+        
+        const finMutation = `
+            mutation {
+                update_finances(
+                    where: {team: {_eq: "${newTeam}"}}, 
+                    _set: {balance: ${konto - abloese}}
+                ) {
+                    returning { id }
+                }
+            }
+        `;
+        await nhost.graphql.request(finMutation);
         await movePlayerToTeam(id, newTeam);
         return;
     }
@@ -161,17 +193,52 @@ async function movePlayerWithTransaction(id, newTeam) {
 }
 
 async function movePlayerToTeam(id, newTeam) {
-    const { error } = await supabase.from('players').update({ team: newTeam }).eq('id', id);
+    const mutation = `
+        mutation {
+            update_players(
+                where: {id: {_eq: ${id}}}, 
+                _set: {team: "${newTeam}"}
+            ) {
+                returning { id }
+            }
+        }
+    `;
+    const { error } = await nhost.graphql.request(mutation);
     if (error) alert('Fehler beim Verschieben: ' + error.message);
 }
 
 async function saveTransactionAndFinance(team, type, amount, info = "") {
     const now = new Date().toISOString().slice(0, 10);
-    await supabase.from('transactions').insert([{ date: now, type, team, amount, info }]);
+    const mutation = `
+        mutation {
+            insert_transactions(objects: [{
+                date: "${now}",
+                type: "${type}",
+                team: "${team}",
+                amount: ${amount},
+                info: "${info}"
+            }]) {
+                returning { id }
+            }
+        }
+    `;
+    await nhost.graphql.request(mutation);
+    
     const finKey = team === "AEK" ? "aekAthen" : "realMadrid";
     let updateObj = {};
     updateObj.balance = (finances[finKey].balance || 0) + amount;
-    await supabase.from('finances').update(updateObj).eq('team', team);
+    
+    const finMutation = `
+        mutation {
+            update_finances(
+                where: {team: {_eq: "${team}"}}, 
+                _set: {balance: ${updateObj.balance}}
+            ) {
+                returning { id }
+            }
+        }
+    `;
+    await nhost.graphql.request(finMutation);
 }
 
 function getKaderMarktwert(arr) {
