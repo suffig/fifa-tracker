@@ -100,6 +100,18 @@
             outline: none; border-color: #3b82f6;
             box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
         }
+        
+        /* Legacy player card styles for compatibility */
+        .cell-aek { background: #eaf4ff !important; }
+        .cell-real { background: #ffecec !important; }
+        .player-card { transition: all 0.3s ease; }
+        .player-card:hover { transform: translateY(-2px); box-shadow: 0 4px 6px rgba(0,0,0,0.1);}
+        
+        /* Mobile swipe navigation support */
+        .swipe-container {
+            touch-action: pan-y;
+            overflow-x: hidden;
+        }
     </style>
 </head>
 <body class="bg-gray-100 dark:bg-gray-900 font-sans transition-colors">

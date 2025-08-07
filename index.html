@@ -3,7 +3,30 @@
 <head>
     <meta charset="UTF-8">
     <title>FIFA Statistik-Tracker</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="manifest.json">
+    
+    <!-- Theme colors for mobile browsers -->
+    <meta name="theme-color" content="#3b82f6">
+    <meta name="msapplication-TileColor" content="#3b82f6">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="FIFA Tracker">
+    
+    <!-- Apple touch icons -->
+    <link rel="apple-touch-icon" href="assets/icon-apple-touch.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="assets/icon-apple-touch.png">
+    
+    <!-- Standard favicons -->
+    <link rel="icon" type="image/png" sizes="32x32" href="assets/icon-32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="assets/icon-16.png">
+    
+    <!-- Preconnect for performance -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com">
+    
     <!-- Tailwind CSS via CDN -->
 	<link href="css/tailwind-play-output.css" rel="stylesheet">
     <!-- Local Flowbite CSS & JS -->
@@ -12,24 +35,156 @@
     <!-- Local Font Awesome -->
     <link rel="stylesheet" href="vendor/font-awesome/all.min.css">
     <style>
-        .cell-aek { background: #eaf4ff !important; }
-        .cell-real { background: #ffecec !important; }
-        .player-card { transition: all 0.3s ease; }
-        .player-card:hover { transform: translateY(-2px); box-shadow: 0 4px 6px rgba(0,0,0,0.1);}
+        /* Enhanced Mobile styles for modern mobile app standards */
         
-        /* Enhanced Modal styles for mobile */
+        /* iOS Safe Area Support */
+        :root {
+            --safe-area-inset-top: env(safe-area-inset-top);
+            --safe-area-inset-right: env(safe-area-inset-right);
+            --safe-area-inset-bottom: env(safe-area-inset-bottom);
+            --safe-area-inset-left: env(safe-area-inset-left);
+        }
+        
+        body {
+            padding-top: var(--safe-area-inset-top);
+            padding-left: var(--safe-area-inset-left);
+            padding-right: var(--safe-area-inset-right);
+            overscroll-behavior: none; /* Prevent rubber band scrolling */
+            -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+            -webkit-user-select: none; /* Prevent text selection like native apps */
+            user-select: none;
+        }
+        
+        /* Allow text selection in input fields */
+        input, textarea, [contenteditable] {
+            -webkit-user-select: text;
+            user-select: text;
+        }
+        
+        /* Enhanced safe area for mobile nav */
+        .mobile-nav {
+            padding-bottom: calc(var(--safe-area-inset-bottom) + 0.5rem);
+        }
+        
+        /* Prevent zoom on input focus (iOS) */
+        input[type="text"], input[type="email"], input[type="password"], 
+        input[type="number"], input[type="tel"], input[type="url"], 
+        textarea, select {
+            font-size: 16px !important; /* Prevents zoom on iOS */
+            -webkit-appearance: none;
+            border-radius: 0.5rem;
+        }
+        
+        /* Enhanced modal styles for mobile */
         .modal {
             z-index: 50; background: rgba(0,0,0,0.4); position: fixed; inset: 0;
             display: flex; align-items: flex-end; justify-content: center;
+            -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(10px);
         }
         .modal-content {
             background: #fff; width: 100%; max-width: 28rem; border-radius: 1rem 1rem 0 0;
             padding: 1.5rem; box-shadow: 0 -4px 20px rgba(0,0,0,0.15); position: relative;
-            animation: slideInFromBottom 0.3s ease-out; max-height: 90vh; overflow-y: auto;
+            animation: slideInFromBottom 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); 
+            max-height: calc(90vh - var(--safe-area-inset-top)); 
+            overflow-y: auto;
+            padding-bottom: calc(1.5rem + var(--safe-area-inset-bottom));
         }
+        
         @keyframes slideInFromBottom {
             from { transform: translateY(100%); opacity: 0;}
             to { transform: translateY(0); opacity: 1;}
+        }
+        
+        /* Pull-to-refresh indicator */
+        .pull-to-refresh {
+            position: absolute; top: -60px; left: 50%; transform: translateX(-50%);
+            background: #fff; border-radius: 50%; width: 40px; height: 40px;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1); opacity: 0;
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            z-index: 60;
+        }
+        
+        .pull-to-refresh.active {
+            opacity: 1; top: calc(10px + var(--safe-area-inset-top));
+        }
+        
+        .pull-to-refresh.refreshing {
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            from { transform: translateX(-50%) rotate(0deg); }
+            to { transform: translateX(-50%) rotate(360deg); }
+        }
+        
+        /* Enhanced loading states - Skeleton screens */
+        .skeleton {
+            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+            background-size: 200% 100%;
+            animation: loading 1.5s infinite;
+            border-radius: 0.5rem;
+        }
+        
+        @keyframes loading {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+        
+        .skeleton-text {
+            height: 1rem; margin-bottom: 0.5rem;
+        }
+        
+        .skeleton-text.wide { width: 100%; }
+        .skeleton-text.medium { width: 75%; }
+        .skeleton-text.short { width: 50%; }
+        
+        .skeleton-avatar {
+            width: 2.5rem; height: 2.5rem; border-radius: 50%;
+        }
+        
+        .skeleton-card {
+            padding: 1rem; background: #fff; border-radius: 0.75rem;
+            margin-bottom: 0.75rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        /* Haptic feedback simulation */
+        @keyframes haptic-light {
+            0% { transform: scale(1); }
+            50% { transform: scale(0.98); }
+            100% { transform: scale(1); }
+        }
+        
+        @keyframes haptic-medium {
+            0% { transform: scale(1); }
+            25% { transform: scale(0.95); }
+            75% { transform: scale(1.02); }
+            100% { transform: scale(1); }
+        }
+        
+        .haptic-feedback {
+            animation: haptic-light 0.1s ease-out;
+        }
+        
+        .haptic-feedback.medium {
+            animation: haptic-medium 0.15s ease-out;
+        }
+        
+        /* Enhanced touch targets */
+        .touch-target {
+            min-height: 44px; min-width: 44px; display: flex; align-items: center; justify-content: center;
+            position: relative; overflow: hidden;
+        }
+        
+        /* Ripple effect for button feedback */
+        .ripple {
+            position: absolute; border-radius: 50%; background: rgba(255,255,255,0.4);
+            pointer-events: none; transform: scale(0); animation: ripple-animation 0.6s linear;
+        }
+        
+        @keyframes ripple-animation {
+            to { transform: scale(4); opacity: 0; }
         }
         
         /* Mobile-first responsive design */
@@ -37,33 +192,53 @@
             position: fixed; bottom: 0; left: 0; right: 0; z-index: 40;
             background: #fff; border-top: 1px solid #e5e7eb;
             box-shadow: 0 -2px 8px rgba(0,0,0,0.1);
+            -webkit-backdrop-filter: blur(20px);
+            backdrop-filter: blur(20px);
         }
         
         .mobile-nav-item {
             display: flex; flex-direction: column; align-items: center;
             padding: 0.5rem 0.25rem; text-decoration: none; transition: all 0.2s;
-            min-height: 60px; justify-content: center;
+            min-height: 60px; justify-content: center; position: relative;
+            border-radius: 0.5rem; margin: 0.25rem;
         }
         
-        .mobile-nav-item.active { color: #3b82f6; background: #eff6ff; }
+        .mobile-nav-item.active { 
+            color: #3b82f6; background: #eff6ff; 
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(59, 130, 246, 0.2);
+        }
         .mobile-nav-item:hover { background: #f9fafb; }
         
         .mobile-nav-icon { font-size: 1.25rem; margin-bottom: 0.25rem; }
         .mobile-nav-label { font-size: 0.75rem; font-weight: 500; }
         
-        /* Touch-friendly buttons */
-        .touch-target {
-            min-height: 44px; min-width: 44px; display: flex; align-items: center; justify-content: center;
+        /* App container adjustments */
+        .app-container { 
+            max-width: none !important; min-height: 100vh; 
+            padding-bottom: calc(80px + var(--safe-area-inset-bottom));
         }
         
-        /* Mobile container adjustments */
-        .app-container { max-width: none !important; min-height: 100vh; padding-bottom: 80px; }
+        /* Enhanced accessibility */
+        .sr-only {
+            position: absolute; width: 1px; height: 1px; padding: 0;
+            margin: -1px; overflow: hidden; clip: rect(0,0,0,0);
+            white-space: nowrap; border: 0;
+        }
+        
+        /* Focus indicators for keyboard navigation */
+        .focus-visible {
+            outline: 2px solid #3b82f6;
+            outline-offset: 2px;
+        }
         
         /* Responsive typography */
         @media (max-width: 640px) {
             .modal-content {
                 width: 100vw; max-width: 100vw; border-radius: 16px 16px 0 0;
-                padding: 1rem; margin: 0; max-height: 85vh;
+                padding: 1rem; margin: 0; 
+                max-height: calc(85vh - var(--safe-area-inset-top));
+                padding-bottom: calc(1rem + var(--safe-area-inset-bottom));
             }
             
             .text-responsive-lg { font-size: 1.125rem; }
@@ -74,7 +249,7 @@
             .desktop-nav { display: none !important; }
             
             /* Adjust main content for mobile nav */
-            main { padding-bottom: 6rem !important; }
+            main { padding-bottom: calc(6rem + var(--safe-area-inset-bottom)) !important; }
         }
         
         @media (min-width: 641px) {
@@ -86,36 +261,67 @@
         .mobile-card {
             border-radius: 0.75rem; padding: 1rem; margin-bottom: 0.75rem;
             box-shadow: 0 1px 3px rgba(0,0,0,0.1); background: #fff;
-            border: 1px solid #f3f4f6;
+            border: 1px solid #f3f4f6; transition: all 0.2s ease;
         }
         
-        /* Mobile swipe navigation support */
-        .swipe-container {
-            touch-action: pan-y;
-            overflow-x: hidden;
+        .mobile-card:hover {
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transform: translateY(-1px);
         }
         
-        /* Pull-to-refresh indicator */
-        .pull-to-refresh {
-            position: absolute; top: -60px; left: 50%; transform: translateX(-50%);
-            background: #fff; border-radius: 50%; width: 40px; height: 40px;
-            display: flex; align-items: center; justify-content: center;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1); opacity: 0;
-            transition: all 0.3s ease;
+        /* Enhanced offline indicator */
+        .offline-indicator {
+            position: fixed; top: calc(var(--safe-area-inset-top) + 1rem); 
+            left: 50%; transform: translateX(-50%); z-index: 60;
+            background: #ef4444; color: white; padding: 0.5rem 1rem;
+            border-radius: 2rem; font-size: 0.875rem; font-weight: 500;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            animation: slideInFromTop 0.3s ease-out;
         }
         
-        .pull-to-refresh.active {
-            opacity: 1; top: 10px;
+        @keyframes slideInFromTop {
+            from { transform: translateX(-50%) translateY(-100%); opacity: 0; }
+            to { transform: translateX(-50%) translateY(0); opacity: 1; }
         }
         
-        /* Smooth tab transitions */
+        /* Connection status indicator positioning */
+        #connection-status {
+            top: calc(var(--safe-area-inset-top) + 0.5rem);
+            right: calc(var(--safe-area-inset-right) + 0.5rem);
+        }
+        
+        /* Native app-like transitions */
         .tab-transition {
-            animation: slideInUp 0.3s ease-out;
+            animation: slideInUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
         }
         
         @keyframes slideInUp {
             from { transform: translateY(20px); opacity: 0; }
             to { transform: translateY(0); opacity: 1; }
+        }
+        
+        /* Performance optimizations */
+        .gpu-accelerated {
+            transform: translateZ(0);
+            -webkit-transform: translateZ(0);
+            will-change: transform;
+        }
+        
+        /* Dark mode enhancements */
+        @media (prefers-color-scheme: dark) {
+            .modal-content {
+                background: #1f2937;
+                color: #f9fafb;
+            }
+            
+            .mobile-nav {
+                background: rgba(31, 41, 55, 0.95);
+                border-top-color: #374151;
+            }
+            
+            .skeleton {
+                background: linear-gradient(90deg, #374151 25%, #4b5563 50%, #374151 75%);
+            }
         }
     </style>
 </head>
@@ -172,12 +378,13 @@
       </div>
     </nav>
     <!-- NAVBAR END -->
-    <main class="p-2 pb-8 relative min-h-[calc(100vh-120px)]">
+    <main class="p-2 pb-8 relative min-h-[calc(100vh-120px)]" role="main">
         <!-- Loader -->
-        <div id="tab-loader" class="fixed top-0 left-0 w-full h-full bg-black bg-opacity-10 flex items-center justify-center z-50" style="display:none;">
+        <div id="tab-loader" class="fixed top-0 left-0 w-full h-full bg-black bg-opacity-10 flex items-center justify-content-center z-50" style="display:none;" aria-hidden="true">
             <div class="w-12 h-12 border-4 border-blue-500 border-t-transparent border-solid rounded-full animate-spin"></div>
+            <span class="sr-only">Lade Inhalte...</span>
         </div>
-        <div id="app"></div>
+        <div id="app" role="tabpanel" aria-live="polite"></div>
     </main>
     <footer class="bg-gray-800 text-white p-3 text-center text-sm mt-4">
         <p>PM © 2025</p>
@@ -185,30 +392,30 @@
     </footer>
 
     <!-- Mobile Bottom Navigation -->
-    <nav class="mobile-nav bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
+    <nav class="mobile-nav bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700" role="navigation" aria-label="Hauptnavigation">
         <div class="grid grid-cols-6 gap-1">
-            <a id="mobile-squad-tab" href="#" class="mobile-nav-item text-gray-600 dark:text-gray-400 active">
-                <i class="fas fa-users mobile-nav-icon"></i>
+            <a id="mobile-squad-tab" href="#" class="mobile-nav-item text-gray-600 dark:text-gray-400 active" role="tab" aria-selected="true" aria-controls="app">
+                <i class="fas fa-users mobile-nav-icon" aria-hidden="true"></i>
                 <span class="mobile-nav-label">Kader</span>
             </a>
-            <a id="mobile-matches-tab" href="#" class="mobile-nav-item text-gray-600 dark:text-gray-400">
-                <i class="fas fa-futbol mobile-nav-icon"></i>
+            <a id="mobile-matches-tab" href="#" class="mobile-nav-item text-gray-600 dark:text-gray-400" role="tab" aria-selected="false" aria-controls="app">
+                <i class="fas fa-futbol mobile-nav-icon" aria-hidden="true"></i>
                 <span class="mobile-nav-label">Spiele</span>
             </a>
-            <a id="mobile-bans-tab" href="#" class="mobile-nav-item text-gray-600 dark:text-gray-400">
-                <i class="fas fa-ban mobile-nav-icon"></i>
+            <a id="mobile-bans-tab" href="#" class="mobile-nav-item text-gray-600 dark:text-gray-400" role="tab" aria-selected="false" aria-controls="app">
+                <i class="fas fa-ban mobile-nav-icon" aria-hidden="true"></i>
                 <span class="mobile-nav-label">Sperren</span>
             </a>
-            <a id="mobile-finanzen-tab" href="#" class="mobile-nav-item text-gray-600 dark:text-gray-400">
-                <i class="fas fa-euro-sign mobile-nav-icon"></i>
+            <a id="mobile-finanzen-tab" href="#" class="mobile-nav-item text-gray-600 dark:text-gray-400" role="tab" aria-selected="false" aria-controls="app">
+                <i class="fas fa-euro-sign mobile-nav-icon" aria-hidden="true"></i>
                 <span class="mobile-nav-label">Finanzen</span>
             </a>
-            <a id="mobile-stats-tab" href="#" class="mobile-nav-item text-gray-600 dark:text-gray-400">
-                <i class="fas fa-chart-bar mobile-nav-icon"></i>
+            <a id="mobile-stats-tab" href="#" class="mobile-nav-item text-gray-600 dark:text-gray-400" role="tab" aria-selected="false" aria-controls="app">
+                <i class="fas fa-chart-bar mobile-nav-icon" aria-hidden="true"></i>
                 <span class="mobile-nav-label">Stats</span>
             </a>
-            <a id="mobile-spieler-tab" href="#" class="mobile-nav-item text-gray-600 dark:text-gray-400">
-                <i class="fas fa-star mobile-nav-icon"></i>
+            <a id="mobile-spieler-tab" href="#" class="mobile-nav-item text-gray-600 dark:text-gray-400" role="tab" aria-selected="false" aria-controls="app">
+                <i class="fas fa-star mobile-nav-icon" aria-hidden="true"></i>
                 <span class="mobile-nav-label">Spieler</span>
             </a>
         </div>
