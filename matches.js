@@ -1,6 +1,6 @@
 import { showModal, hideModal } from './modal.js';
 import { decrementBansAfterMatch } from './bans.js';
-import { supabase } from './supabaseClient.js';
+import { nhost } from './nhostClient.js';
 
 // Globale Daten
 let matches = [];

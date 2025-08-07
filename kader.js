@@ -1,6 +1,6 @@
 import { POSITIONEN, savePlayer as dataSavePlayer, deletePlayer as dataDeletePlayer } from './data.js';
 import { showModal, hideModal } from './modal.js';
-import { supabaseDb, supabase } from './supabaseClient.js';
+import { nhostDb, nhost } from './nhostClient.js';
 import { isDatabaseAvailable } from './connectionMonitor.js';
 
 let aekAthen = [];
@@ -27,9 +27,9 @@ async function loadPlayersAndFinances(renderFn = renderPlayerLists) {
 
         // Use enhanced database operations with retry logic
         const [playersResult, finResult, transResult] = await Promise.allSettled([
-            supabaseDb.select('players', '*'),
-            supabaseDb.select('finances', '*'),
-            supabaseDb.select('transactions', '*', { 
+            nhostDb.select('players', '*'),
+            nhostDb.select('finances', '*'),
+            nhostDb.select('transactions', '*', { 
                 order: { column: 'id', ascending: false } 
             })
         ]);

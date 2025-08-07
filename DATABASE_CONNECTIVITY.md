@@ -1,10 +1,10 @@
-# Database Connectivity Improvements
+# Database Connectivity with Nhost
 
-This document outlines the enhancements made to resolve the issue where the FIFA tracker app would eventually stop receiving data from the database.
+This document outlines the enhanced database connectivity system implemented for the FIFA tracker app using Nhost/Hasura infrastructure.
 
-## Problem Resolved
+## Architecture Overview
 
-The app was experiencing intermittent database connectivity issues that would cause it to stop receiving data updates, requiring users to refresh the page.
+The app has been migrated from Supabase to Nhost for improved performance, better GraphQL support, and enhanced real-time capabilities.
 
 ## Solution Overview
 
@@ -13,20 +13,22 @@ Implemented a comprehensive database connectivity enhancement system with the fo
 ### 🔧 Core Components
 
 1. **Connection Monitor** (`connectionMonitor.js`)
-   - Continuously monitors database health
+   - Continuously monitors database health using GraphQL queries
    - Automatic reconnection with exponential backoff
    - Network connectivity detection
    - Real-time status updates
 
-2. **Enhanced Supabase Client** (`supabaseClient.js`)
+2. **Enhanced Nhost Client** (`nhostClient.js`)
+   - GraphQL-based database operations
    - Retry logic for all database operations
    - Smart error classification
    - Improved authentication handling
    - Connection state awareness
 
 3. **Real-time Subscription Recovery** (`main.js`)
-   - Automatic reconnection for live sync
-   - Channel health monitoring
+   - GraphQL subscriptions for live sync
+   - Automatic reconnection for real-time updates
+   - Subscription health monitoring
    - Error handling and recovery
    - Graceful degradation
 
