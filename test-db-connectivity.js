@@ -3,7 +3,7 @@
  * Tests the enhanced database operations with retry logic and error handling
  */
 
-import { supabaseDb, supabase } from './supabaseClient.js';
+import { supabaseDb, supabase } from './nhostClient.js';
 import { connectionMonitor, isDatabaseAvailable } from './connectionMonitor.js';
 
 console.log('🔧 Testing enhanced database connectivity features...');

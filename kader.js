@@ -1,6 +1,6 @@
 import { POSITIONEN, savePlayer as dataSavePlayer, deletePlayer as dataDeletePlayer } from './data.js';
 import { showModal, hideModal } from './modal.js';
-import { supabaseDb, supabase } from './supabaseClient.js';
+import { supabaseDb, supabase } from './nhostClient.js';
 import { isDatabaseAvailable } from './connectionMonitor.js';
 
 let aekAthen = [];

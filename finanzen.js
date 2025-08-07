@@ -1,5 +1,5 @@
 import { showModal, hideModal } from './modal.js';
-import { supabase } from './supabaseClient.js';
+import { supabase } from './nhostClient.js';
 import { matches } from './matches.js';
 
 let finances = {

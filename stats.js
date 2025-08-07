@@ -1,4 +1,4 @@
-import { supabase } from './supabaseClient.js';
+import { supabase } from './nhostClient.js';
 
 export async function renderStatsTab(containerId = "app") {
     // Lade Daten
