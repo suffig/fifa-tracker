@@ -1,12 +1,47 @@
-import { NhostClient } from 'https://cdn.jsdelivr.net/npm/@nhost/nhost-js/+esm';
+// Try to import nhost client, with fallback for testing environments
+let NhostClient, nhost;
 
-alert("nhostClient.js geladen!");
-console.log("nhostClient.js geladen!");
+async function initializeNhost() {
+  try {
+    const nhostModule = await import('https://cdn.jsdelivr.net/npm/@nhost/nhost-js/+esm');
+    NhostClient = nhostModule.NhostClient;
+    
+    nhost = new NhostClient({
+      subdomain: 'lclasfeqhdiqxycvumjm',
+      region: 'eu-central-1'
+    });
+    
+    console.log("✅ nhostClient.js geladen - echte nhost Verbindung");
+  } catch (error) {
+    console.warn("⚠️ nhost CDN blocked, using mock client for development:", error);
+    
+    // Mock nhost client for development/testing when CDN is blocked
+    nhost = {
+      auth: {
+        signUp: async ({ email, password }) => ({ error: new Error("Mock: nhost nicht verfügbar - bitte echte nhost-Umgebung verwenden") }),
+        signIn: async ({ email, password }) => ({ error: new Error("Mock: nhost nicht verfügbar - bitte echte nhost-Umgebung verwenden") }),
+        signOut: async () => {},
+        getSession: async () => ({ session: null }),
+        onAuthStateChanged: (callback) => {
+          // Mock: immediately call with signed out state
+          setTimeout(() => callback('SIGNED_OUT', null), 100);
+          return { unsubscribe: () => {} };
+        }
+      },
+      graphql: {
+        request: async (query) => ({ error: new Error("Mock: nhost nicht verfügbar"), data: null }),
+        unsubscribeAll: () => {}
+      }
+    };
+    
+    console.log("🔧 nhostClient.js geladen (Mock-Modus für Entwicklung)");
+  }
+}
 
-export const nhost = new NhostClient({
-  subdomain: 'lclasfeqhdiqxycvumjm',
-  region: 'eu-central-1'
-});
+// Initialize on module load
+await initializeNhost();
+
+export { nhost };
 
 class NhostWrapper {
   constructor(client) {
