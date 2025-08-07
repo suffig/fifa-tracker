@@ -1,4 +1,4 @@
-import { supabase } from './supabaseClient.js';
+import { nhost } from './nhostClient.js';
 
 export async function renderSpielerTab(containerId = "app") {
     const app = document.getElementById(containerId);
@@ -37,24 +37,37 @@ export async function renderSpielerTab(containerId = "app") {
 
     async function renderTorschuetzen() {
         // Spieler laden
-        const { data: players, error: errP } = await supabase.from('players').select('*');
-        if (errP) {
-            document.getElementById('spieler-content').innerHTML =
-                `<div class="text-red-700 p-4">Fehler beim Laden der Daten: ${errP?.message || ''}</div>`;
-            return;
-        }
+        try {
+            const result = await nhost.graphql.request(`query {
+                players {
+                    id
+                    name
+                    team
+                    position
+                    value
+                    goals
+                    created_at
+                    updated_at
+                }
+            }`);
+            
+            if (result.error) {
+                document.getElementById('spieler-content').innerHTML =
+                    `<div class="text-red-700 p-4">Fehler beim Laden der Daten: ${result.error.message || ''}</div>`;
+                return;
+            }
 
-        let scorerArr = (players || [])
-            .filter(p => p.goals && p.goals > 0)
-            .map(p => ({
-                team: p.team,
-                name: p.name,
-                goals: p.goals || 0
-            }));
-        scorerArr.sort((a, b) => b.goals - a.goals);
+            let scorerArr = (result.data?.players || [])
+                .filter(p => p.goals && p.goals > 0)
+                .map(p => ({
+                    team: p.team,
+                    name: p.name,
+                    goals: p.goals || 0
+                }));
+            scorerArr.sort((a, b) => b.goals - a.goals);
 
-        // Top 3 mit Abzeichen
-        const top3 = scorerArr.slice(0, 3);
+            // Top 3 mit Abzeichen
+            const top3 = scorerArr.slice(0, 3);
         const rest = scorerArr.slice(3);
 
 		// Card-Ansicht Top 3 - alle in einer Reihe, responsive (scrollbar auf ganz kleinen Screens)
@@ -123,14 +136,34 @@ export async function renderSpielerTab(containerId = "app") {
     }
 
     async function renderSdS() {
-        const { data: sdsArr, error } = await supabase.from('spieler_des_spiels').select('*');
-        if (error) {
-            document.getElementById('spieler-content').innerHTML =
-                `<div class="text-red-700 p-4">Fehler beim Laden der Spieler des Spiels: ${error.message}</div>`;
-            return;
-        }
-        // Hole alle Spieler für aktuelle Teams
-        const { data: players } = await supabase.from('players').select('name, team');
+        try {
+            const sdsResult = await nhost.graphql.request(`query {
+                spieler_des_spiels {
+                    id
+                    name
+                    team
+                    count
+                    created_at
+                    updated_at
+                }
+            }`);
+            
+            if (sdsResult.error) {
+                document.getElementById('spieler-content').innerHTML =
+                    `<div class="text-red-700 p-4">Fehler beim Laden der Spieler des Spiels: ${sdsResult.error.message}</div>`;
+                return;
+            }
+            
+            // Hole alle Spieler für aktuelle Teams
+            const playersResult = await nhost.graphql.request(`query {
+                players {
+                    name
+                    team
+                }
+            }`);
+            
+            const sdsArr = sdsResult.data?.spieler_des_spiels || [];
+            const players = playersResult.data?.players || [];
         let arr = [...sdsArr].sort((a, b) => b.count - a.count);
 
         // Team immer aktuell aus players, fallback auf SdS-Tabelle
@@ -208,5 +241,8 @@ export async function renderSpielerTab(containerId = "app") {
         }
 
         document.getElementById('spieler-content').innerHTML = top3Html + tableHtml;
+    } catch (error) {
+        document.getElementById('spieler-content').innerHTML =
+            `<div class="text-red-700 p-4">Fehler beim Laden der Spieler des Spiels: ${error.message}</div>`;
     }
 }

@@ -3,7 +3,7 @@
  * Tests the enhanced database operations with retry logic and error handling
  */
 
-import { supabaseDb, supabase } from './supabaseClient.js';
+import { nhostDb, nhost } from './nhostClient.js';
 import { connectionMonitor, isDatabaseAvailable } from './connectionMonitor.js';
 
 console.log('🔧 Testing enhanced database connectivity features...');
@@ -21,7 +21,7 @@ async function testDatabaseOperations() {
     try {
         // Test select with retry logic
         console.log('🔍 Testing select operation...');
-        const players = await supabaseDb.select('players', '*', { limit: 1 });
+        const players = await nhostDb.select('players', '*', { limit: 1 });
         console.log('✅ Select operation successful:', players.data?.length || 0, 'records');
         
         // Test connection availability check
@@ -36,22 +36,37 @@ async function testDatabaseOperations() {
 console.log('\n3️⃣ Testing Real-time Subscription Handling...');
 
 function testRealtimeSubscriptions() {
-    const channel = supabase
-        .channel('test_channel')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'players' }, (payload) => {
-            console.log('📬 Real-time update received:', payload);
-        })
-        .subscribe((status) => {
-            console.log('📡 Subscription status:', status);
-            
-            if (status === 'SUBSCRIBED') {
-                console.log('✅ Real-time subscription active with error handling');
-            } else if (status === 'CHANNEL_ERROR') {
-                console.log('🔄 Error handling triggered - reconnection logic would activate');
+    try {
+        const subscription = `
+            subscription {
+                players(limit: 1) {
+                    id
+                    updated_at
+                }
             }
-        });
+        `;
         
-    return channel;
+        const channel = nhost.graphql.ws.subscribe(
+            { query: subscription },
+            {
+                next: (data) => {
+                    console.log('📡 Real-time subscription working:', data);
+                },
+                error: (error) => {
+                    console.log('⚠️ Subscription error (handled):', error.message);
+                },
+                complete: () => {
+                    console.log('📡 Real-time subscription completed');
+                }
+            }
+        );
+        
+        console.log('✅ Real-time subscription setup with error handling');
+        return channel;
+    } catch (error) {
+        console.log('❌ Real-time subscription setup failed:', error.message);
+        return null;
+    }
 }
 
 // Test 4: Authentication State Management
@@ -59,7 +74,7 @@ console.log('\n4️⃣ Testing Authentication State Management...');
 
 async function testAuthState() {
     try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const session = nhost.auth.getSession();
         console.log('🔐 Auth session check:', session ? 'Active' : 'No session');
         console.log('✅ Enhanced auth state management ready');
     } catch (error) {
@@ -86,7 +101,9 @@ async function runTests() {
     
     // Clean up
     setTimeout(() => {
-        supabase.removeChannel(channel);
+        if (channel && channel.unsubscribe) {
+            channel.unsubscribe();
+        }
         console.log('\n🧹 Test cleanup completed');
     }, 2000);
 }
