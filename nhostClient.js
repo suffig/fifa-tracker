@@ -69,8 +69,31 @@ class NhostWrapper {
         gqlQuery += `(limit: ${options.limit})`;
       }
       
+      // Determine which fields to select
+      let fields;
+      if (query === '*') {
+        // Default fields for most tables
+        fields = 'id created_at updated_at';
+        // Add common fields based on table name
+        if (table === 'players') {
+          fields += ' name team position value goals';
+        } else if (table === 'matches') {
+          fields += ' date home_team away_team home_score away_score home_scorers away_scorers feld';
+        } else if (table === 'bans') {
+          fields += ' playerid matchesserved totalmatchesban reason';
+        } else if (table === 'finances') {
+          fields += ' team balance debt';
+        } else if (table === 'transactions') {
+          fields += ' date type team amount info match_id';
+        } else if (table === 'spieler_des_spiels') {
+          fields += ' name team count match_id';
+        }
+      } else {
+        fields = query;
+      }
+      
       gqlQuery += ` {
-        ${query === '*' ? 'id created_at updated_at' : query}
+        ${fields}
       }
       }`;
 
@@ -81,27 +104,47 @@ class NhostWrapper {
 
   async insert(table, data) {
     return this.retryOperation(async () => {
+      // Prepare the data object for GraphQL
+      const dataFields = Object.entries(data).map(([key, value]) => {
+        if (typeof value === 'string') {
+          return `${key}: "${value}"`;
+        } else if (value === null || value === undefined) {
+          return `${key}: null`;
+        }
+        return `${key}: ${value}`;
+      }).join(', ');
+      
       const mutation = `mutation {
-        insert_${table}_one(object: ${JSON.stringify(data).replace(/"([^"]+)":/g, '$1:')}) {
+        insert_${table}_one(object: {${dataFields}}) {
           id
         }
       }`;
       
       const result = await this.client.graphql.request(mutation);
-      return { data: result.data?.insert_${table}_one, error: result.error };
+      return { data: result.data?.[`insert_${table}_one`], error: result.error };
     });
   }
 
   async update(table, data, id) {
     return this.retryOperation(async () => {
+      // Prepare the data object for GraphQL
+      const setFields = Object.entries(data).map(([key, value]) => {
+        if (typeof value === 'string') {
+          return `${key}: "${value}"`;
+        } else if (value === null || value === undefined) {
+          return `${key}: null`;
+        }
+        return `${key}: ${value}`;
+      }).join(', ');
+      
       const mutation = `mutation {
-        update_${table}_by_pk(pk_columns: {id: ${id}}, _set: ${JSON.stringify(data).replace(/"([^"]+)":/g, '$1:')}) {
+        update_${table}_by_pk(pk_columns: {id: ${id}}, _set: {${setFields}}) {
           id
         }
       }`;
       
       const result = await this.client.graphql.request(mutation);
-      return { data: result.data?.update_${table}_by_pk, error: result.error };
+      return { data: result.data?.[`update_${table}_by_pk`], error: result.error };
     });
   }
 
@@ -114,7 +157,7 @@ class NhostWrapper {
       }`;
       
       const result = await this.client.graphql.request(mutation);
-      return { data: result.data?.delete_${table}_by_pk, error: result.error };
+      return { data: result.data?.[`delete_${table}_by_pk`], error: result.error };
     });
   }
 
