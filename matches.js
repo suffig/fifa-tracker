@@ -477,11 +477,35 @@ async function submitMatchForm(event, id) {
     // Spieler des Spiels-Statistik (Tabelle spieler_des_spiels)
     if (manofthematch) {
         let t = aekAthen.find(p => p.name === manofthematch) ? "AEK" : "Real";
-        const { data: existing } = await supabase.from('spieler_des_spiels').select('*').eq('name', manofthematch).eq('team', t);
-        if (existing && existing.length > 0) {
-            await supabase.from('spieler_des_spiels').update({ count: existing[0].count + 1 }).eq('id', existing[0].id);
+        const query = `query { spieler_des_spiels(where: {name: {_eq: "${manofthematch}"}, team: {_eq: "${t}"}}) { id count } }`;
+        const result = await nhost.graphql.request(query);
+        const existing = result.data?.spieler_des_spiels || [];
+        
+        if (existing.length > 0) {
+            const mutation = `
+                mutation {
+                    update_spieler_des_spiels(
+                        where: {id: {_eq: ${existing[0].id}}}, 
+                        _set: {count: ${existing[0].count + 1}}
+                    ) {
+                        returning { id }
+                    }
+                }
+            `;
+            await nhost.graphql.request(mutation);
         } else {
-            await supabase.from('spieler_des_spiels').insert([{ name: manofthematch, team: t, count: 1 }]);
+            const mutation = `
+                mutation {
+                    insert_spieler_des_spiels(objects: [{
+                        name: "${manofthematch}", 
+                        team: "${t}", 
+                        count: 1
+                    }]) {
+                        returning { id }
+                    }
+                }
+            `;
+            await nhost.graphql.request(mutation);
         }
     }
 

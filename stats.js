@@ -1,21 +1,22 @@
-import { supabase } from './supabaseClient.js';
+import { nhost } from './nhostClient.js';
 
 export async function renderStatsTab(containerId = "app") {
     // Lade Daten
-    const [
-        { data: bans = [], error: errorBans },
-        { data: matches = [], error: errorMatches },
-        { data: players = [], error: errorPlayers }
-    ] = await Promise.all([
-        supabase.from('bans').select('*'),
-        supabase.from('matches').select('*'),
-        supabase.from('players').select('*')
+    const [bansResult, matchesResult, playersResult] = await Promise.all([
+        nhost.graphql.request('query { bans { id player_id team type totalgames matchesserved } }'),
+        nhost.graphql.request('query { matches { id date team1 team2 score1 score2 } }'),
+        nhost.graphql.request('query { players { id name team } }')
     ]);
-    if (errorBans || errorMatches || errorPlayers) {
+    
+    if (bansResult.error || matchesResult.error || playersResult.error) {
         document.getElementById(containerId).innerHTML =
-            `<div class="text-red-700 p-4">Fehler beim Laden der Statistiken: ${errorBans?.message || ''} ${errorMatches?.message || ''} ${errorPlayers?.message || ''}</div>`;
+            `<div class="text-red-700 p-4">Fehler beim Laden der Statistiken: ${bansResult.error?.message || ''} ${matchesResult.error?.message || ''} ${playersResult.error?.message || ''}</div>`;
         return;
     }
+    
+    const bans = bansResult.data?.bans || [];
+    const matches = matchesResult.data?.matches || [];
+    const players = playersResult.data?.players || [];
 
     // Spielerlisten
     const aekPlayers = players.filter(p => p.team === "AEK");
