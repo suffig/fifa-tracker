@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>FIFA Statistik-Tracker - Mobile Test</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <!-- Tailwind CSS via CDN -->
+	<link href="css/tailwind-play-output.css" rel="stylesheet">
+    <!-- Local Flowbite CSS & JS -->
+    <link href="vendor/flowbite/flowbite.min.css" rel="stylesheet" />
+    <script src="vendor/flowbite/flowbite.min.js"></script>
+    <!-- Local Font Awesome -->
+    <link rel="stylesheet" href="vendor/font-awesome/all.min.css">
+    <style>
+        .cell-aek { background: #eaf4ff !important; }
+        .cell-real { background: #ffecec !important; }
+        .player-card { transition: all 0.3s ease; }
+        .player-card:hover { transform: translateY(-2px); box-shadow: 0 4px 6px rgba(0,0,0,0.1);}
+        
+        /* Enhanced Modal styles for mobile */
+        .modal {
+            z-index: 50; background: rgba(0,0,0,0.4); position: fixed; inset: 0;
+            display: flex; align-items: flex-end; justify-content: center;
+        }
+        .modal-content {
+            background: #fff; width: 100%; max-width: 28rem; border-radius: 1rem 1rem 0 0;
+            padding: 1.5rem; box-shadow: 0 -4px 20px rgba(0,0,0,0.15); position: relative;
+            animation: slideInFromBottom 0.3s ease-out; max-height: 90vh; overflow-y: auto;
+        }
+        @keyframes slideInFromBottom {
+            from { transform: translateY(100%); opacity: 0;}
+            to { transform: translateY(0); opacity: 1;}
+        }
+        
+        /* Mobile-first responsive design */
+        .mobile-nav {
+            position: fixed; bottom: 0; left: 0; right: 0; z-index: 40;
+            background: #fff; border-top: 1px solid #e5e7eb;
+            box-shadow: 0 -2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .mobile-nav-item {
+            display: flex; flex-direction: column; align-items: center;
+            padding: 0.5rem 0.25rem; text-decoration: none; transition: all 0.2s;
+            min-height: 60px; justify-content: center;
+        }
+        
+        .mobile-nav-item.active { color: #3b82f6; background: #eff6ff; }
+        .mobile-nav-item:hover { background: #f9fafb; }
+        
+        .mobile-nav-icon { font-size: 1.25rem; margin-bottom: 0.25rem; }
+        .mobile-nav-label { font-size: 0.75rem; font-weight: 500; }
+        
+        /* Touch-friendly buttons */
+        .touch-target {
+            min-height: 44px; min-width: 44px; display: flex; align-items: center; justify-content: center;
+        }
+        
+        /* Mobile container adjustments */
+        .app-container { max-width: none !important; min-height: 100vh; padding-bottom: 80px; }
+        
+        /* Responsive typography */
+        @media (max-width: 640px) {
+            .modal-content {
+                width: 100vw; max-width: 100vw; border-radius: 16px 16px 0 0;
+                padding: 1rem; margin: 0; max-height: 85vh;
+            }
+            
+            .text-responsive-lg { font-size: 1.125rem; }
+            .text-responsive-base { font-size: 0.875rem; }
+            .text-responsive-sm { font-size: 0.75rem; }
+            
+            /* Hide desktop navigation on mobile */
+            .desktop-nav { display: none !important; }
+            
+            /* Adjust main content for mobile nav */
+            main { padding-bottom: 6rem !important; }
+        }
+        
+        @media (min-width: 641px) {
+            .mobile-nav { display: none; }
+            .desktop-nav { display: flex !important; }
+        }
+        
+        /* Improved card layouts for mobile */
+        .mobile-card {
+            border-radius: 0.75rem; padding: 1rem; margin-bottom: 0.75rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1); background: #fff;
+            border: 1px solid #f3f4f6;
+        }
+        
+        /* Better form elements for mobile */
+        .mobile-input {
+            font-size: 16px; /* Prevents zoom on iOS */
+            padding: 0.75rem; border-radius: 0.5rem;
+            border: 1px solid #d1d5db; width: 100%;
+        }
+        
+        .mobile-input:focus {
+            outline: none; border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+    </style>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 font-sans transition-colors">
+
+<div class="app-container mx-auto bg-white dark:bg-gray-800 shadow-lg relative overflow-hidden min-h-screen">
+    <!-- NAVBAR - Desktop -->
+    <nav class="desktop-nav bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 py-2.5">
+      <div class="flex flex-wrap justify-between items-center mx-auto max-w-screen-xl">
+        <a href="#" class="flex items-center">
+          <img src="assets/logo.png" class="h-8 mr-3" alt="Logo" />
+          <span class="self-center text-xl font-semibold whitespace-nowrap dark:text-white">FIFA Statistik-Tracker</span>
+        </a>
+        <div class="flex">
+          <ul class="flex flex-row space-x-8">
+            <li>
+              <a id="squad-tab" href="#" class="block py-2 px-3 text-blue-700 font-medium" aria-current="page">
+                <i class="fas fa-users mr-1"></i> Kader
+              </a>
+            </li>
+            <li>
+              <a id="matches-tab" href="#" class="block py-2 px-3 text-gray-700 hover:text-blue-700">
+                <i class="fas fa-futbol mr-1"></i> Spiele
+              </a>
+            </li>
+            <li>
+              <a id="bans-tab" href="#" class="block py-2 px-3 text-gray-700 hover:text-blue-700">
+                <i class="fas fa-ban mr-1"></i> Sperren
+              </a>
+            </li>
+            <li>
+              <a id="finanzen-tab" href="#" class="block py-2 px-3 text-gray-700 hover:text-blue-700">
+                <i class="fas fa-euro-sign mr-1"></i> Finanzen
+              </a>
+            </li>
+            <li>
+              <a id="stats-tab" href="#" class="block py-2 px-3 text-gray-700 hover:text-blue-700">
+                <i class="fas fa-chart-bar mr-1"></i> Stats
+              </a>
+            </li>
+            <li>
+              <a id="spieler-tab" href="#" class="block py-2 px-3 text-gray-700 hover:text-blue-700">
+                <i class="fas fa-star mr-1"></i> Spieler
+              </a>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </nav>
+    <!-- NAVBAR END -->
+    
+    <main class="p-4 pb-8 relative min-h-[calc(100vh-120px)]">
+        <div id="app">
+            <!-- Sample Kader Content for Mobile Testing -->
+            <div class="mb-6">
+                <h2 class="text-2xl font-bold text-gray-900 mb-4">Kader Management</h2>
+                
+                <!-- Mobile-optimized action buttons -->
+                <div class="flex flex-wrap gap-2 mb-4">
+                    <button class="touch-target bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center">
+                        <i class="fas fa-plus mr-2"></i> Spieler hinzufügen
+                    </button>
+                    <button class="touch-target bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center">
+                        <i class="fas fa-download mr-2"></i> Export
+                    </button>
+                </div>
+                
+                <!-- Team sections with mobile cards -->
+                <div class="space-y-6">
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-800 mb-3 flex items-center">
+                            <span class="w-4 h-4 bg-blue-500 rounded mr-2"></span>
+                            AEK Athen
+                        </h3>
+                        <div class="grid gap-3">
+                            <div class="mobile-card">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex-1">
+                                        <div class="flex items-center">
+                                            <span class="text-sm font-medium text-gray-600 mr-3">TH</span>
+                                            <span class="font-semibold text-gray-900">Max Mustermann</span>
+                                        </div>
+                                        <div class="text-sm text-gray-500 mt-1">87 Rating</div>
+                                    </div>
+                                    <div class="flex space-x-2">
+                                        <button class="touch-target text-blue-500 hover:text-blue-700">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="touch-target text-red-500 hover:text-red-700">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="mobile-card">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex-1">
+                                        <div class="flex items-center">
+                                            <span class="text-sm font-medium text-gray-600 mr-3">IV</span>
+                                            <span class="font-semibold text-gray-900">Peter Schmidt</span>
+                                        </div>
+                                        <div class="text-sm text-gray-500 mt-1">83 Rating</div>
+                                    </div>
+                                    <div class="flex space-x-2">
+                                        <button class="touch-target text-blue-500 hover:text-blue-700">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="touch-target text-red-500 hover:text-red-700">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-800 mb-3 flex items-center">
+                            <span class="w-4 h-4 bg-red-500 rounded mr-2"></span>
+                            Real Madrid
+                        </h3>
+                        <div class="grid gap-3">
+                            <div class="mobile-card">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex-1">
+                                        <div class="flex items-center">
+                                            <span class="text-sm font-medium text-gray-600 mr-3">ST</span>
+                                            <span class="font-semibold text-gray-900">Carlos Rodriguez</span>
+                                        </div>
+                                        <div class="text-sm text-gray-500 mt-1">91 Rating</div>
+                                    </div>
+                                    <div class="flex space-x-2">
+                                        <button class="touch-target text-blue-500 hover:text-blue-700">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="touch-target text-red-500 hover:text-red-700">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+    
+    <footer class="bg-gray-800 text-white p-3 text-center text-sm mt-4">
+        <p>PM © 2025</p>
+    </footer>
+
+    <!-- Mobile Bottom Navigation -->
+    <nav class="mobile-nav bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
+        <div class="grid grid-cols-6 gap-1">
+            <a id="mobile-squad-tab" href="#" class="mobile-nav-item text-gray-600 dark:text-gray-400 active">
+                <i class="fas fa-users mobile-nav-icon"></i>
+                <span class="mobile-nav-label">Kader</span>
+            </a>
+            <a id="mobile-matches-tab" href="#" class="mobile-nav-item text-gray-600 dark:text-gray-400">
+                <i class="fas fa-futbol mobile-nav-icon"></i>
+                <span class="mobile-nav-label">Spiele</span>
+            </a>
+            <a id="mobile-bans-tab" href="#" class="mobile-nav-item text-gray-600 dark:text-gray-400">
+                <i class="fas fa-ban mobile-nav-icon"></i>
+                <span class="mobile-nav-label">Sperren</span>
+            </a>
+            <a id="mobile-finanzen-tab" href="#" class="mobile-nav-item text-gray-600 dark:text-gray-400">
+                <i class="fas fa-euro-sign mobile-nav-icon"></i>
+                <span class="mobile-nav-label">Finanzen</span>
+            </a>
+            <a id="mobile-stats-tab" href="#" class="mobile-nav-item text-gray-600 dark:text-gray-400">
+                <i class="fas fa-chart-bar mobile-nav-icon"></i>
+                <span class="mobile-nav-label">Stats</span>
+            </a>
+            <a id="mobile-spieler-tab" href="#" class="mobile-nav-item text-gray-600 dark:text-gray-400">
+                <i class="fas fa-star mobile-nav-icon"></i>
+                <span class="mobile-nav-label">Spieler</span>
+            </a>
+        </div>
+    </nav>
+</div>
+
+<script>
+// Simple tab switching for demo
+document.addEventListener('DOMContentLoaded', function() {
+    const tabContents = {
+        'squad': 'Kader Content',
+        'matches': 'Spiele Content', 
+        'bans': 'Sperren Content',
+        'finanzen': 'Finanzen Content',
+        'stats': 'Stats Content',
+        'spieler': 'Spieler Content'
+    };
+    
+    function switchTab(tab) {
+        // Update mobile nav
+        document.querySelectorAll('.mobile-nav-item').forEach(item => {
+            item.classList.remove('active');
+        });
+        document.getElementById('mobile-' + tab + '-tab').classList.add('active');
+        
+        // Update desktop nav
+        document.querySelectorAll('.desktop-nav a').forEach(item => {
+            item.classList.remove('text-blue-700', 'font-medium');
+            item.classList.add('text-gray-700');
+        });
+        document.getElementById(tab + '-tab').classList.add('text-blue-700', 'font-medium');
+        document.getElementById(tab + '-tab').classList.remove('text-gray-700');
+        
+        // Update content
+        document.getElementById('app').innerHTML = `
+            <div class="text-center py-8">
+                <h2 class="text-2xl font-bold text-gray-900">${tabContents[tab]}</h2>
+                <p class="text-gray-500 mt-2">Mobile-optimierte Ansicht für ${tab}</p>
+            </div>
+        `;
+    }
+    
+    // Add event listeners
+    ['squad', 'matches', 'bans', 'finanzen', 'stats', 'spieler'].forEach(tab => {
+        document.getElementById(tab + '-tab').addEventListener('click', (e) => {
+            e.preventDefault();
+            switchTab(tab);
+        });
+        document.getElementById('mobile-' + tab + '-tab').addEventListener('click', (e) => {
+            e.preventDefault();
+            switchTab(tab);
+        });
+    });
+});
+</script>
+
+</body>
+</html>

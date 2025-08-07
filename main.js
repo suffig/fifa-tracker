@@ -103,7 +103,8 @@ function showTabLoader(show = true) {
 
 function switchTab(tab) {
     currentTab = tab;
-    document.querySelectorAll('nav a').forEach(btn => {
+    // Update desktop navigation
+    document.querySelectorAll('nav a[id$="-tab"]').forEach(btn => {
         btn.classList.remove("bg-blue-700","text-white","active-tab","lg:text-blue-700");
         btn.removeAttribute("aria-current");
     });
@@ -112,6 +113,16 @@ function switchTab(tab) {
         desktopTab.classList.add("bg-blue-700","text-white","active-tab","lg:text-blue-700");
         desktopTab.setAttribute("aria-current","page");
     }
+    
+    // Update mobile navigation
+    document.querySelectorAll('.mobile-nav-item').forEach(btn => {
+        btn.classList.remove("active");
+    });
+    const mobileTab = document.getElementById("mobile-" + tab + "-tab");
+    if (mobileTab) {
+        mobileTab.classList.add("active");
+    }
+    
     showTabLoader(true);
     setTimeout(() => {
         renderCurrentTab();
@@ -142,12 +153,22 @@ function renderCurrentTab() {
 
 function setupTabButtons() {
     if(tabButtonsInitialized) return;
+    // Desktop navigation
     document.getElementById("squad-tab")?.addEventListener("click", e => { e.preventDefault(); switchTab("squad"); });
     document.getElementById("bans-tab")?.addEventListener("click", e => { e.preventDefault(); switchTab("bans"); });
     document.getElementById("matches-tab")?.addEventListener("click", e => { e.preventDefault(); switchTab("matches"); });
     document.getElementById("stats-tab")?.addEventListener("click", e => { e.preventDefault(); switchTab("stats"); });
     document.getElementById("finanzen-tab")?.addEventListener("click", e => { e.preventDefault(); switchTab("finanzen"); });
     document.getElementById("spieler-tab")?.addEventListener("click", e => { e.preventDefault(); switchTab("spieler"); });
+    
+    // Mobile navigation
+    document.getElementById("mobile-squad-tab")?.addEventListener("click", e => { e.preventDefault(); switchTab("squad"); });
+    document.getElementById("mobile-bans-tab")?.addEventListener("click", e => { e.preventDefault(); switchTab("bans"); });
+    document.getElementById("mobile-matches-tab")?.addEventListener("click", e => { e.preventDefault(); switchTab("matches"); });
+    document.getElementById("mobile-stats-tab")?.addEventListener("click", e => { e.preventDefault(); switchTab("stats"); });
+    document.getElementById("mobile-finanzen-tab")?.addEventListener("click", e => { e.preventDefault(); switchTab("finanzen"); });
+    document.getElementById("mobile-spieler-tab")?.addEventListener("click", e => { e.preventDefault(); switchTab("spieler"); });
+    
     tabButtonsInitialized = true;
 }
 

@@ -1,0 +1,58 @@
+/* Minimal Flowbite CSS components for offline use */
+[data-collapse-toggle] { cursor: pointer; }
+.hidden { display: none !important; }
+button[data-collapse-toggle] svg { transition: transform 0.2s; }
+button[data-collapse-toggle][aria-expanded="true"] svg { transform: rotate(180deg); }
+
+/* Dropdown/Collapse animations */
+.transition-all { transition: all 0.15s ease-in-out; }
+.duration-300 { transition-duration: 300ms; }
+.ease-in { transition-timing-function: cubic-bezier(0.4, 0, 1, 1); }
+.ease-out { transition-timing-function: cubic-bezier(0, 0, 0.2, 1); }
+.ease-in-out { transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1); }
+
+/* Modal backdrop */
+.modal-backdrop { 
+    position: fixed; 
+    top: 0; 
+    left: 0; 
+    width: 100%; 
+    height: 100%; 
+    background: rgba(0, 0, 0, 0.5); 
+    z-index: 40; 
+}
+
+/* Focus states */
+.focus\:outline-none:focus { outline: 2px solid transparent; outline-offset: 2px; }
+.focus\:ring-2:focus { --tw-ring-width: 2px; box-shadow: var(--tw-ring-inset) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color); }
+.focus\:ring-gray-200:focus { --tw-ring-color: #e5e7eb; }
+
+/* Responsive navigation */
+@media (max-width: 1023px) {
+    .lg\:hidden { display: none; }
+    .lg\:block { display: block; }
+}
+
+@media (min-width: 1024px) {
+    .lg\:flex { display: flex; }
+    .lg\:hidden { display: none; }
+    .lg\:block { display: block; }
+    .lg\:w-auto { width: auto; }
+    .lg\:flex-row { flex-direction: row; }
+    .lg\:space-x-8 > :not([hidden]) ~ :not([hidden]) { margin-left: 2rem; }
+    .lg\:mt-0 { margin-top: 0; }
+    .lg\:bg-white { background-color: #fff; }
+    .lg\:bg-transparent { background-color: transparent; }
+    .lg\:text-blue-700 { color: #1d4ed8; }
+    .lg\:p-0 { padding: 0; }
+    .lg\:hover\:bg-transparent:hover { background-color: transparent; }
+    .lg\:hover\:text-blue-700:hover { color: #1d4ed8; }
+    .lg\:border-0 { border-width: 0; }
+}
+
+/* Dark mode support */
+.dark\:bg-gray-800.dark { background-color: #1f2937; }
+.dark\:text-gray-400.dark { color: #9ca3af; }
+.dark\:hover\:bg-gray-700.dark:hover { background-color: #374151; }
+.dark\:hover\:text-white.dark:hover { color: #fff; }
+.dark\:focus\:ring-gray-600.dark:focus { --tw-ring-color: #4b5563; }
