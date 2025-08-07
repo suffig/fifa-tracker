@@ -1,5 +1,5 @@
 import { showModal, hideModal } from './modal.js';
-import { supabase } from './supabaseClient.js';
+import { nhost } from './nhostClient.js';
 import { matches } from './matches.js';
 
 let finances = {
@@ -10,57 +10,104 @@ let transactions = [];
 
 // Lädt alle Finanzen und Transaktionen und ruft das Rendern auf
 async function loadFinancesAndTransactions(renderFn = renderFinanzenTabInner) {
-    const { data: finData, error: finError } = await supabase.from('finances').select('*');
-    if (finError) {
-        alert("Fehler beim Laden der Finanzen: " + finError.message);
-    }
-    if (finData && finData.length) {
-        finances = {
-            aekAthen: finData.find(f => f.team === "AEK") || { balance: 0, debt: 0 },
-            realMadrid: finData.find(f => f.team === "Real") || { balance: 0, debt: 0 }
-        };
-    } else {
-        finances = {
-            aekAthen: { balance: 0, debt: 0 },
-            realMadrid: { balance: 0, debt: 0 }
-        };
-    }
+    try {
+        const finResult = await nhost.graphql.request(`query {
+            finances {
+                id
+                team
+                balance
+                debt
+                created_at
+                updated_at
+            }
+        }`);
+        
+        if (finResult.error) {
+            alert("Fehler beim Laden der Finanzen: " + finResult.error.message);
+        }
+        
+        const finData = finResult.data?.finances || [];
+        if (finData.length) {
+            finances = {
+                aekAthen: finData.find(f => f.team === "AEK") || { balance: 0, debt: 0 },
+                realMadrid: finData.find(f => f.team === "Real") || { balance: 0, debt: 0 }
+            };
+        } else {
+            finances = {
+                aekAthen: { balance: 0, debt: 0 },
+                realMadrid: { balance: 0, debt: 0 }
+            };
+        }
 
-    const { data: transData, error: transError } = await supabase.from('transactions').select('*').order('id', { ascending: false });
-    if (transError) {
-        alert("Fehler beim Laden der Transaktionen: " + transError.message);
+        const transResult = await nhost.graphql.request(`query {
+            transactions(order_by: {id: desc}) {
+                id
+                date
+                type
+                team
+                amount
+                info
+                match_id
+                created_at
+                updated_at
+            }
+        }`);
+        
+        if (transResult.error) {
+            alert("Fehler beim Laden der Transaktionen: " + transResult.error.message);
+        }
+        transactions = transResult.data?.transactions || [];
+    } catch (error) {
+        alert("Fehler beim Laden der Daten: " + error.message);
     }
-    transactions = transData || [];
     renderFn("app");
 }
 
 // Transaktion in die DB schreiben und Finanzen aktualisieren
 async function saveTransaction(trans) {
     trans.amount = parseInt(trans.amount, 10) || 0;
-    const { error: insertError } = await supabase.from('transactions').insert([{
-        date: trans.date,
-        type: trans.type,
-        team: trans.team,
-        amount: trans.amount,
-        info: trans.info || null,
-        match_id: trans.match_id || null
-    }]);
-    if (insertError) {
-        alert("Fehler beim Speichern der Transaktion: " + insertError.message);
-        return;
-    }
-    const teamKey = trans.team === "AEK" ? "aekAthen" : "realMadrid";
-    let updateObj = {};
-    if (trans.type === "Echtgeld-Ausgleich") {
-        updateObj.debt = (finances[teamKey].debt || 0) + trans.amount;
-    } else {
-        let newBalance = (finances[teamKey].balance || 0) + trans.amount;
-        if (newBalance < 0) newBalance = 0;
-        updateObj.balance = newBalance;
-    }
-    const { error: updateError } = await supabase.from('finances').update(updateObj).eq('team', trans.team);
-    if (updateError) {
-        alert("Fehler beim Aktualisieren der Finanzen: " + updateError.message);
+    try {
+        const insertMutation = `mutation {
+            insert_transactions_one(object: {
+                date: "${trans.date}",
+                type: "${trans.type}",
+                team: "${trans.team}",
+                amount: ${trans.amount},
+                info: "${trans.info || ''}",
+                match_id: ${trans.match_id || null}
+            }) {
+                id
+            }
+        }`;
+        
+        const insertResult = await nhost.graphql.request(insertMutation);
+        if (insertResult.error) {
+            alert("Fehler beim Speichern der Transaktion: " + insertResult.error.message);
+            return;
+        }
+        
+        const teamKey = trans.team === "AEK" ? "aekAthen" : "realMadrid";
+        let updateObj = {};
+        if (trans.type === "Echtgeld-Ausgleich") {
+            updateObj.debt = (finances[teamKey].debt || 0) + trans.amount;
+        } else {
+            let newBalance = (finances[teamKey].balance || 0) + trans.amount;
+            if (newBalance < 0) newBalance = 0;
+            updateObj.balance = newBalance;
+        }
+        
+        const updateMutation = `mutation {
+            update_finances(where: {team: {_eq: "${trans.team}"}}, _set: ${JSON.stringify(updateObj).replace(/"([^"]+)":/g, '$1:')}) {
+                affected_rows
+            }
+        }`;
+        
+        const updateResult = await nhost.graphql.request(updateMutation);
+        if (updateResult.error) {
+            alert("Fehler beim Aktualisieren der Finanzen: " + updateResult.error.message);
+        }
+    } catch (error) {
+        alert("Fehler beim Speichern: " + error.message);
     }
 }
 

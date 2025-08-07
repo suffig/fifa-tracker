@@ -1,21 +1,58 @@
-import { supabase } from './supabaseClient.js';
+import { nhost } from './nhostClient.js';
 
 export async function renderStatsTab(containerId = "app") {
     // Lade Daten
-    const [
-        { data: bans = [], error: errorBans },
-        { data: matches = [], error: errorMatches },
-        { data: players = [], error: errorPlayers }
-    ] = await Promise.all([
-        supabase.from('bans').select('*'),
-        supabase.from('matches').select('*'),
-        supabase.from('players').select('*')
-    ]);
-    if (errorBans || errorMatches || errorPlayers) {
-        document.getElementById(containerId).innerHTML =
-            `<div class="text-red-700 p-4">Fehler beim Laden der Statistiken: ${errorBans?.message || ''} ${errorMatches?.message || ''} ${errorPlayers?.message || ''}</div>`;
-        return;
-    }
+    try {
+        const [bansResult, matchesResult, playersResult] = await Promise.all([
+            nhost.graphql.request(`query {
+                bans {
+                    id
+                    playerid
+                    matchesserved
+                    totalmatchesban
+                    reason
+                    created_at
+                    updated_at
+                }
+            }`),
+            nhost.graphql.request(`query {
+                matches {
+                    id
+                    date
+                    home_team
+                    away_team
+                    home_score
+                    away_score
+                    home_scorers
+                    away_scorers
+                    feld
+                    created_at
+                    updated_at
+                }
+            }`),
+            nhost.graphql.request(`query {
+                players {
+                    id
+                    name
+                    team
+                    position
+                    value
+                    goals
+                    created_at
+                    updated_at
+                }
+            }`)
+        ]);
+        
+        if (bansResult.error || matchesResult.error || playersResult.error) {
+            document.getElementById(containerId).innerHTML =
+                `<div class="text-red-700 p-4">Fehler beim Laden der Statistiken: ${bansResult.error?.message || ''} ${matchesResult.error?.message || ''} ${playersResult.error?.message || ''}</div>`;
+            return;
+        }
+
+        const bans = bansResult.data?.bans || [];
+        const matches = matchesResult.data?.matches || [];
+        const players = playersResult.data?.players || [];
 
     // Spielerlisten
     const aekPlayers = players.filter(p => p.team === "AEK");
@@ -293,4 +330,8 @@ export async function renderStatsTab(containerId = "app") {
             }
         }, 0);
     }
+} catch (error) {
+    document.getElementById(containerId).innerHTML =
+        `<div class="text-red-700 p-4">Fehler beim Laden der Statistiken: ${error.message}</div>`;
+}
 }

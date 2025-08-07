@@ -1,4 +1,4 @@
-import { supabase, supabaseDb } from './supabaseClient.js';
+import { nhost, nhostDb } from './nhostClient.js';
 import { connectionMonitor, isDatabaseAvailable } from './connectionMonitor.js';
 
 import { signUp, signIn, signOut } from './auth.js';
@@ -53,8 +53,8 @@ function updateConnectionStatus(status) {
     }
 }
 
-// --- Session expiry UI handler (for supabaseClient.js event dispatch) ---
-window.addEventListener('supabase-session-expired', () => {
+// --- Session expiry UI handler (for nhostClient.js event dispatch) ---
+window.addEventListener('nhost-session-expired', () => {
     let indicator = document.getElementById('connection-status');
     if (!indicator) {
         indicator = document.createElement('div');
@@ -82,7 +82,7 @@ function handleVisibilityChange() {
             inactivityCleanupTimer = null;
         }
         connectionMonitor.resumeHealthChecks();
-        supabase.auth.getSession().then(({data: {session}}) => {
+        nhost.auth.getSession().then((session) => {
             if(session) subscribeAllLiveSync();
         });
     }
@@ -90,7 +90,10 @@ function handleVisibilityChange() {
 
 function cleanupRealtimeSubscriptions() {
     if (realtimeChannel) {
-        supabase.removeChannel(realtimeChannel);
+        // Unsubscribe from Nhost GraphQL subscription
+        if (realtimeChannel.unsubscribe) {
+            realtimeChannel.unsubscribe();
+        }
         realtimeChannel = null;
         liveSyncInitialized = false;
     }
@@ -125,19 +128,18 @@ function renderCurrentTab() {
     if (!appDiv) return;
     appDiv.innerHTML = ""; // leeren, um Fehler zu vermeiden
     // Robust: Tabs nur anzeigen, wenn Session da
-    supabase.auth.getSession().then(({ data: { session } }) => {
-        if (!session) {
-            appDiv.innerHTML = `<div class="text-red-700 text-center py-6">Nicht angemeldet. Bitte einloggen.</div>`;
-            return;
-        }
-        // Tab-Render
-        if(currentTab==="squad") renderKaderTab("app");
-        else if(currentTab==="bans") renderBansTab("app");
-        else if(currentTab==="matches") renderMatchesTab("app");
-        else if(currentTab==="stats") renderStatsTab("app");
-        else if(currentTab==="finanzen") renderFinanzenTab("app");
-        else if(currentTab==="spieler") renderSpielerTab("app");
-    });
+    const session = nhost.auth.getSession();
+    if (!session) {
+        appDiv.innerHTML = `<div class="text-red-700 text-center py-6">Nicht angemeldet. Bitte einloggen.</div>`;
+        return;
+    }
+    // Tab-Render
+    if(currentTab==="squad") renderKaderTab("app");
+    else if(currentTab==="bans") renderBansTab("app");
+    else if(currentTab==="matches") renderMatchesTab("app");
+    else if(currentTab==="stats") renderStatsTab("app");
+    else if(currentTab==="finanzen") renderFinanzenTab("app");
+    else if(currentTab==="spieler") renderSpielerTab("app");
 }
 
 function setupTabButtons() {
@@ -154,29 +156,71 @@ function setupTabButtons() {
 function subscribeAllLiveSync() {
     if (liveSyncInitialized || !isAppVisible) return;
     cleanupRealtimeSubscriptions();
-    realtimeChannel = supabase
-        .channel('global_live')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'players' }, () => renderCurrentTab())
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'matches' }, () => renderCurrentTab())
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'transactions' }, () => renderCurrentTab())
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'finances' }, () => renderCurrentTab())
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'bans' }, () => renderCurrentTab())
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'spieler_des_spiels' }, () => renderCurrentTab())
-        .subscribe((status) => {
-            if (status === 'SUBSCRIBED') {
-                liveSyncInitialized = true;
-            } else if (status === 'CHANNEL_ERROR') {
-                liveSyncInitialized = false;
-                if (isAppVisible) setTimeout(() => {
-                    if (!liveSyncInitialized && isAppVisible) subscribeAllLiveSync();
-                }, 5000);
-            } else if (status === 'CLOSED') {
-                liveSyncInitialized = false;
-                if (isDatabaseAvailable() && isAppVisible) setTimeout(() => {
-                    if (isAppVisible) subscribeAllLiveSync();
-                }, 2000);
+    
+    // Setup Nhost GraphQL subscription for all table changes
+    const subscription = `
+        subscription {
+            players {
+                id
+                updated_at
             }
-        });
+            matches {
+                id
+                updated_at
+            }
+            transactions {
+                id
+                updated_at
+            }
+            finances {
+                id
+                updated_at
+            }
+            bans {
+                id
+                updated_at
+            }
+            spieler_des_spiels {
+                id
+                updated_at
+            }
+        }
+    `;
+    
+    try {
+        realtimeChannel = nhost.graphql.ws.subscribe(
+            { query: subscription },
+            {
+                next: (data) => {
+                    console.log('Live sync data received:', data);
+                    renderCurrentTab();
+                },
+                error: (error) => {
+                    console.error('Live sync error:', error);
+                    liveSyncInitialized = false;
+                    if (isAppVisible) {
+                        setTimeout(() => {
+                            if (!liveSyncInitialized && isAppVisible) subscribeAllLiveSync();
+                        }, 5000);
+                    }
+                },
+                complete: () => {
+                    console.log('Live sync completed');
+                    liveSyncInitialized = false;
+                    if (isDatabaseAvailable() && isAppVisible) {
+                        setTimeout(() => {
+                            if (isAppVisible) subscribeAllLiveSync();
+                        }, 2000);
+                    }
+                }
+            }
+        );
+        liveSyncInitialized = true;
+        console.log('Live sync initialized with Nhost GraphQL subscription');
+    } catch (error) {
+        console.error('Failed to setup live sync:', error);
+        liveSyncInitialized = false;
+    }
 }
 
 function setupLogoutButton() {
@@ -186,7 +230,7 @@ function setupLogoutButton() {
             await signOut();
             let tries = 0;
             while (tries < 20) {
-                const { data: { session } } = await supabase.auth.getSession();
+                const session = nhost.auth.getSession();
                 if (!session) break;
                 await new Promise(res => setTimeout(res, 100));
                 tries++;
@@ -207,7 +251,7 @@ async function renderLoginArea() {
         return;
     }
     const logoutBtn = document.getElementById('logout-btn');
-    const { data: { session } } = await supabase.auth.getSession();
+    const session = nhost.auth.getSession();
     if (session) {
         loginDiv.innerHTML = "";
         appContainer.style.display = '';
@@ -259,7 +303,7 @@ async function renderLoginArea() {
 }
 
 // Nur HIER wird der Render-Flow getriggert!
-supabase.auth.onAuthStateChange((_event, _session) => renderLoginArea());
+nhost.auth.onAuthStateChanged((_event, _session) => renderLoginArea());
 window.addEventListener('DOMContentLoaded', renderLoginArea);
 document.addEventListener('visibilitychange', handleVisibilityChange);
 window.addEventListener('beforeunload', () => {

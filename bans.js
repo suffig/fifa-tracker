@@ -1,14 +1,30 @@
 import { showModal, hideModal } from './modal.js';
-import { supabase } from './supabaseClient.js';
+import { nhost } from './nhostClient.js';
 
 // --- Helper-Funktion: Spieler für Team laden ---
 async function getPlayersByTeam(team) {
-    const { data, error } = await supabase.from('players').select('*').eq('team', team);
-    if (error) {
+    try {
+        const query = `query {
+            players(where: {team: {_eq: "${team}"}}) {
+                id
+                name
+                team
+                position
+                value
+                created_at
+                updated_at
+            }
+        }`;
+        const result = await nhost.graphql.request(query);
+        if (result.error) {
+            console.warn('Fehler beim Laden der Spieler:', result.error.message);
+            return [];
+        }
+        return result.data?.players || [];
+    } catch (error) {
         console.warn('Fehler beim Laden der Spieler:', error.message);
         return [];
     }
-    return data || [];
 }
 
 let bans = [];
@@ -22,21 +38,49 @@ const BAN_TYPES = [
 const ALLOWED_BAN_COUNTS = [1, 2, 3, 4, 5, 6];
 
 export async function loadBansAndRender(renderFn = renderBansLists) {
-    const [{ data: bansData, error: errorBans }, { data: playersData, error: errorPlayers }] = await Promise.all([
-        supabase.from('bans').select('*'),
-        supabase.from('players').select('*')
-    ]);
-    if (errorBans) {
-        alert('Fehler beim Laden der Sperren: ' + errorBans.message);
+    try {
+        const [bansResult, playersResult] = await Promise.all([
+            nhost.graphql.request(`query {
+                bans {
+                    id
+                    playerid
+                    matchesserved
+                    totalmatchesban
+                    reason
+                    created_at
+                    updated_at
+                }
+            }`),
+            nhost.graphql.request(`query {
+                players {
+                    id
+                    name
+                    team
+                    position
+                    value
+                    created_at
+                    updated_at
+                }
+            }`)
+        ]);
+        
+        if (bansResult.error) {
+            alert('Fehler beim Laden der Sperren: ' + bansResult.error.message);
+            bans = [];
+        } else {
+            bans = bansResult.data?.bans || [];
+        }
+        
+        if (playersResult.error) {
+            alert('Fehler beim Laden der Spieler: ' + playersResult.error.message);
+            playersCache = [];
+        } else {
+            playersCache = playersResult.data?.players || [];
+        }
+    } catch (error) {
+        alert('Fehler beim Laden der Daten: ' + error.message);
         bans = [];
-    } else {
-        bans = bansData || [];
-    }
-    if (errorPlayers) {
-        alert('Fehler beim Laden der Spieler: ' + errorPlayers.message);
         playersCache = [];
-    } else {
-        playersCache = playersData || [];
     }
     renderFn();
 }
@@ -142,31 +186,44 @@ function renderBanList(list, containerId, active) {
 async function saveBan(ban) {
     if (ban.id) {
         // Update
-        const { error } = await supabase
-            .from('bans')
-            .update({
-                player_id: ban.player_id,
-                team: ban.team,
-                type: ban.type,
-                totalgames: ban.totalgames,
-                matchesserved: ban.matchesserved,
-                reason: ban.reason
-            })
-            .eq('id', ban.id);
-        if (error) alert('Fehler beim Speichern: ' + error.message);
+        try {
+            const mutation = `mutation {
+                update_bans_by_pk(pk_columns: {id: ${ban.id}}, _set: {
+                    player_id: ${ban.player_id},
+                    team: "${ban.team}",
+                    type: "${ban.type}",
+                    totalgames: ${ban.totalgames},
+                    matchesserved: ${ban.matchesserved},
+                    reason: "${ban.reason}"
+                }) {
+                    id
+                }
+            }`;
+            const result = await nhost.graphql.request(mutation);
+            if (result.error) alert('Fehler beim Speichern: ' + result.error.message);
+        } catch (error) {
+            alert('Fehler beim Speichern: ' + error.message);
+        }
     } else {
         // Insert
-        const { error } = await supabase
-            .from('bans')
-            .insert([{
-                player_id: ban.player_id,
-                team: ban.team,
-                type: ban.type,
-                totalgames: ban.totalgames,
-                matchesserved: ban.matchesserved || 0,
-                reason: ban.reason
-            }]);
-        if (error) alert('Fehler beim Anlegen: ' + error.message);
+        try {
+            const mutation = `mutation {
+                insert_bans_one(object: {
+                    player_id: ${ban.player_id},
+                    team: "${ban.team}",
+                    type: "${ban.type}",
+                    totalgames: ${ban.totalgames},
+                    matchesserved: ${ban.matchesserved || 0},
+                    reason: "${ban.reason}"
+                }) {
+                    id
+                }
+            }`;
+            const result = await nhost.graphql.request(mutation);
+            if (result.error) alert('Fehler beim Anlegen: ' + result.error.message);
+        } catch (error) {
+            alert('Fehler beim Anlegen: ' + error.message);
+        }
     }
 }
 
@@ -306,17 +363,35 @@ async function openBanForm(ban = null) {
 
 // Hilfsfunktion für andere Module:
 export async function decrementBansAfterMatch() {
-    const { data: bansData, error } = await supabase.from('bans').select('*');
-    if (error) return;
-    const updates = [];
-    bansData.forEach(ban => {
-        if (getRestGames(ban) > 0) {
-            updates.push(
-                supabase.from('bans').update({ matchesserved: (ban.matchesserved || 0) + 1 }).eq('id', ban.id)
-            );
-        }
-    });
-    await Promise.all(updates);
+    try {
+        const query = `query {
+            bans {
+                id
+                matchesserved
+                totalmatchesban
+            }
+        }`;
+        const result = await nhost.graphql.request(query);
+        if (result.error) return;
+        
+        const bansData = result.data?.bans || [];
+        const updates = [];
+        bansData.forEach(ban => {
+            if (getRestGames(ban) > 0) {
+                const mutation = `mutation {
+                    update_bans_by_pk(pk_columns: {id: ${ban.id}}, _set: {
+                        matchesserved: ${(ban.matchesserved || 0) + 1}
+                    }) {
+                        id
+                    }
+                }`;
+                updates.push(nhost.graphql.request(mutation));
+            }
+        });
+        await Promise.all(updates);
+    } catch (error) {
+        console.error('Error updating bans:', error);
+    }
 }
 
 // --- RESET-STATE-FUNKTION ---

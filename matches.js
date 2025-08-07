@@ -1,6 +1,6 @@
 import { showModal, hideModal } from './modal.js';
 import { decrementBansAfterMatch } from './bans.js';
-import { supabase } from './supabaseClient.js';
+import { nhost } from './nhostClient.js';
 
 // Globale Daten
 let matches = [];
@@ -23,22 +23,98 @@ export function getAppMatchNumber(matchId) {
 }
 
 async function loadAllData(renderFn = renderMatchesList) {
-    const { data: matchesData } = await supabase.from('matches').select('*').order('id', { ascending: false });
-    matches = matchesData || [];
-    const { data: players } = await supabase.from('players').select('*');
-    aekAthen = players ? players.filter(p => p.team === "AEK") : [];
-    realMadrid = players ? players.filter(p => p.team === "Real") : [];
-    const { data: bansData } = await supabase.from('bans').select('*');
-    bans = bansData || [];
-    const { data: finData } = await supabase.from('finances').select('*');
-    finances = {
-        aekAthen: finData?.find(f => f.team === "AEK") || { balance: 0 },
-        realMadrid: finData?.find(f => f.team === "Real") || { balance: 0 }
-    };
-    const { data: sdsData } = await supabase.from('spieler_des_spiels').select('*');
-    spielerDesSpiels = sdsData || [];
-    const { data: transData } = await supabase.from('transactions').select('*').order('id', { ascending: false });
-    transactions = transData || [];
+    try {
+        const matchesResult = await nhost.graphql.request(`query {
+            matches(order_by: {id: desc}) {
+                id
+                date
+                home_team
+                away_team
+                home_score
+                away_score
+                home_scorers
+                away_scorers
+                feld
+                created_at
+                updated_at
+            }
+        }`);
+        matches = matchesResult.data?.matches || [];
+        
+        const playersResult = await nhost.graphql.request(`query {
+            players {
+                id
+                name
+                team
+                position
+                value
+                goals
+                created_at
+                updated_at
+            }
+        }`);
+        const players = playersResult.data?.players || [];
+        aekAthen = players.filter(p => p.team === "AEK");
+        realMadrid = players.filter(p => p.team === "Real");
+        
+        const bansResult = await nhost.graphql.request(`query {
+            bans {
+                id
+                playerid
+                matchesserved
+                totalmatchesban
+                reason
+                created_at
+                updated_at
+            }
+        }`);
+        bans = bansResult.data?.bans || [];
+        
+        const finResult = await nhost.graphql.request(`query {
+            finances {
+                id
+                team
+                balance
+                debt
+                created_at
+                updated_at
+            }
+        }`);
+        const finData = finResult.data?.finances || [];
+        finances = {
+            aekAthen: finData.find(f => f.team === "AEK") || { balance: 0 },
+            realMadrid: finData.find(f => f.team === "Real") || { balance: 0 }
+        };
+        
+        const sdsResult = await nhost.graphql.request(`query {
+            spieler_des_spiels {
+                id
+                match_id
+                player_name
+                team
+                created_at
+                updated_at
+            }
+        }`);
+        spielerDesSpiels = sdsResult.data?.spieler_des_spiels || [];
+        
+        const transResult = await nhost.graphql.request(`query {
+            transactions(order_by: {id: desc}) {
+                id
+                date
+                type
+                team
+                amount
+                info
+                match_id
+                created_at
+                updated_at
+            }
+        }`);
+        transactions = transResult.data?.transactions || [];
+    } catch (error) {
+        console.error('Error loading data:', error);
+    }
     renderFn();
 }
 
@@ -60,14 +136,50 @@ export function renderMatchesTab(containerId = "app") {
 let matchesChannel;
 function subscribeMatches(renderFn = renderMatchesList) {
     if (matchesChannel) return;
-    matchesChannel = supabase
-        .channel('matches_live')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'matches' }, () => loadAllData(renderFn))
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'spieler_des_spiels' }, () => loadAllData(renderFn))
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'finances' }, () => loadAllData(renderFn))
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'players' }, () => loadAllData(renderFn))
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'transactions' }, () => loadAllData(renderFn))
-        .subscribe();
+    
+    try {
+        const subscription = `
+            subscription {
+                matches {
+                    id
+                    updated_at
+                }
+                spieler_des_spiels {
+                    id
+                    updated_at
+                }
+                finances {
+                    id
+                    updated_at
+                }
+                players {
+                    id
+                    updated_at
+                }
+                transactions {
+                    id
+                    updated_at
+                }
+            }
+        `;
+        
+        matchesChannel = nhost.graphql.ws.subscribe(
+            { query: subscription },
+            {
+                next: () => loadAllData(renderFn),
+                error: (error) => {
+                    console.error('Matches subscription error:', error);
+                    matchesChannel = null;
+                },
+                complete: () => {
+                    console.log('Matches subscription completed');
+                    matchesChannel = null;
+                }
+            }
+        );
+    } catch (error) {
+        console.error('Failed to setup matches subscription:', error);
+    }
 }
 
 let matchViewDate = new Date().toISOString().slice(0, 10); // Standard: heute

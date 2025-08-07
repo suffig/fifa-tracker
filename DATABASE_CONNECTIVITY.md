@@ -18,7 +18,7 @@ Implemented a comprehensive database connectivity enhancement system with the fo
    - Network connectivity detection
    - Real-time status updates
 
-2. **Enhanced Supabase Client** (`supabaseClient.js`)
+2. **Enhanced Nhost Client** (`nhostClient.js`)
    - Retry logic for all database operations
    - Smart error classification
    - Improved authentication handling
@@ -26,7 +26,7 @@ Implemented a comprehensive database connectivity enhancement system with the fo
 
 3. **Real-time Subscription Recovery** (`main.js`)
    - Automatic reconnection for live sync
-   - Channel health monitoring
+   - GraphQL subscription monitoring
    - Error handling and recovery
    - Graceful degradation
 
@@ -92,6 +92,20 @@ The system uses sensible defaults but can be customized:
 - Exponential backoff multiplier: 2x
 ```
 
+## Architecture
+
+### Backend: Nhost
+- **Database**: PostgreSQL with Hasura GraphQL Engine
+- **Authentication**: Nhost Auth with JWT tokens
+- **Real-time**: GraphQL subscriptions via WebSockets
+- **Region**: eu-central-1
+- **Subdomain**: lclasfeqhdiqxycvumjm
+
+### Client Libraries
+- **Nhost JS SDK**: For authentication and GraphQL operations
+- **GraphQL Subscriptions**: For real-time data synchronization
+- **Retry Logic**: Custom wrapper for enhanced reliability
+
 ## Browser Support
 
 - Modern browsers with ES6+ support
@@ -108,4 +122,4 @@ Check the browser console for detailed connectivity logs:
 
 ---
 
-These improvements ensure the FIFA tracker maintains reliable database connectivity even during network interruptions, server maintenance, or temporary connectivity issues.
+These improvements ensure the FIFA tracker maintains reliable database connectivity even during network interruptions, server maintenance, or temporary connectivity issues using the modern Nhost platform.

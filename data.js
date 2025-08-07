@@ -1,8 +1,8 @@
 export const POSITIONEN = ["TH","LV","RV","IV","ZDM","ZM","ZOM","LM","RM","LF","RF","ST"];
-import { supabaseDb, supabase } from './supabaseClient.js';
+import { nhostDb, nhost } from './nhostClient.js';
 import { isDatabaseAvailable } from './connectionMonitor.js';
 
-// Hinweis: Alle Daten werden jetzt über Supabase geladen – mit verbesserter Fehlerbehandlung und Retry-Logik!
+// Hinweis: Alle Daten werden jetzt über Nhost geladen – mit verbesserter Fehlerbehandlung und Retry-Logik!
 
 // Enhanced data loading with fallback and retry logic
 async function safeDataOperation(operation, fallbackValue = []) {
@@ -26,10 +26,10 @@ async function safeDataOperation(operation, fallbackValue = []) {
     }
 }
 
-// Lade alle Spieler eines Teams aus Supabase
+// Lade alle Spieler eines Teams aus Nhost
 export async function getPlayersByTeam(team) {
     return safeDataOperation(
-        () => supabaseDb.select('players', '*', { eq: { team } }),
+        () => nhostDb.select('players', '*', { eq: { team } }),
         []
     );
 }
@@ -37,7 +37,7 @@ export async function getPlayersByTeam(team) {
 // Lade alle Ehemaligen (team === "Ehemalige")
 export async function getEhemalige() {
     return safeDataOperation(
-        () => supabaseDb.select('players', '*', { eq: { team: "Ehemalige" } }),
+        () => nhostDb.select('players', '*', { eq: { team: "Ehemalige" } }),
         []
     );
 }
@@ -45,7 +45,7 @@ export async function getEhemalige() {
 // Lade alle bans
 export async function getBans() {
     return safeDataOperation(
-        () => supabaseDb.select('bans', '*'),
+        () => nhostDb.select('bans', '*'),
         []
     );
 }
@@ -53,7 +53,7 @@ export async function getBans() {
 // Lade alle Matches
 export async function getMatches() {
     return safeDataOperation(
-        () => supabaseDb.select('matches', '*'),
+        () => nhostDb.select('matches', '*'),
         []
     );
 }
@@ -61,7 +61,7 @@ export async function getMatches() {
 // Lade alle Transaktionen
 export async function getTransactions() {
     return safeDataOperation(
-        () => supabaseDb.select('transactions', '*'),
+        () => nhostDb.select('transactions', '*'),
         []
     );
 }
@@ -69,7 +69,7 @@ export async function getTransactions() {
 // Lade Finanzen (liefert beide Teams als Array)
 export async function getFinances() {
     return safeDataOperation(
-        () => supabaseDb.select('finances', '*'),
+        () => nhostDb.select('finances', '*'),
         []
     );
 }
@@ -77,7 +77,7 @@ export async function getFinances() {
 // Lade SpielerDesSpiels-Statistik
 export async function getSpielerDesSpiels() {
     return safeDataOperation(
-        () => supabaseDb.select('spieler_des_spiels', '*'),
+        () => nhostDb.select('spieler_des_spiels', '*'),
         []
     );
 }
@@ -90,14 +90,14 @@ export async function savePlayer(player) {
 
     try {
         if (player.id) {
-            return await supabaseDb.update('players', {
+            return await nhostDb.update('players', {
                 name: player.name,
                 team: player.team,
                 position: player.position,
                 value: player.value
             }, player.id);
         } else {
-            return await supabaseDb.insert('players', [{
+            return await nhostDb.insert('players', [{
                 name: player.name,
                 team: player.team,
                 position: player.position,
@@ -116,7 +116,7 @@ export async function deletePlayer(id) {
     }
 
     try {
-        return await supabaseDb.delete('players', id);
+        return await nhostDb.delete('players', id);
     } catch (error) {
         console.error('Failed to delete player:', error);
         throw new Error('Fehler beim Löschen des Spielers. Bitte versuchen Sie es erneut.');

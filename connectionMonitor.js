@@ -2,7 +2,7 @@
  * Connection Monitor - Monitors database connectivity, handles reconnection,
  * provides KeepAlive/Heartbeat, and notifies UI of session/connection state.
  */
-import { supabase } from './supabaseClient.js';
+import { nhost } from './nhostClient.js';
 
 // Interval for KeepAlive (default: 4 minutes)
 const KEEPALIVE_INTERVAL = 4 * 60 * 1000;
@@ -47,10 +47,16 @@ class ConnectionMonitor {
 
     async checkConnection() {
         try {
-            // Try a simple query to test connection
-            const { error } = await supabase.from('players').select('id').limit(1);
+            // Try a simple GraphQL query to test connection
+            const query = `query {
+                players(limit: 1) {
+                    id
+                }
+            }`;
+            
+            const result = await nhost.graphql.request(query);
 
-            if (error) throw error;
+            if (result.error) throw result.error;
 
             if (!this.isConnected) {
                 console.log('Database connection restored');
@@ -150,7 +156,12 @@ class ConnectionMonitor {
         this.keepAliveTimer = setInterval(async () => {
             if (!this.isPaused && this.isConnected) {
                 try {
-                    await supabase.from('players').select('id').limit(1);
+                    const query = `query {
+                        players(limit: 1) {
+                            id
+                        }
+                    }`;
+                    await nhost.graphql.request(query);
                     // Optional: console.log('KeepAlive: Ping sent');
                 } catch (e) {
                     console.warn('KeepAlive failed:', e.message);
@@ -208,7 +219,7 @@ class ConnectionMonitor {
         });
 
         // Listen for session expiry (optional enhancement)
-        window.addEventListener('supabase-session-expired', () => {
+        window.addEventListener('nhost-session-expired', () => {
             this.isConnected = false;
             this.notifyListeners({ connected: false, sessionExpired: true });
         });
