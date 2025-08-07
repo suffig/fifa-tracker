@@ -1,6 +1,6 @@
 import { showModal, hideModal } from './modal.js';
 import { decrementBansAfterMatch } from './bans.js';
-import { supabase } from './supabaseClient.js';
+import { nhost } from './nhostClient.js';
 
 // Globale Daten
 let matches = [];
@@ -23,22 +23,30 @@ export function getAppMatchNumber(matchId) {
 }
 
 async function loadAllData(renderFn = renderMatchesList) {
-    const { data: matchesData } = await supabase.from('matches').select('*').order('id', { ascending: false });
-    matches = matchesData || [];
-    const { data: players } = await supabase.from('players').select('*');
-    aekAthen = players ? players.filter(p => p.team === "AEK") : [];
-    realMadrid = players ? players.filter(p => p.team === "Real") : [];
-    const { data: bansData } = await supabase.from('bans').select('*');
-    bans = bansData || [];
-    const { data: finData } = await supabase.from('finances').select('*');
+    const matchesResult = await nhost.graphql.request('query { matches(order_by: {id: desc}) { id date team1 team2 score1 score2 created_at updated_at } }');
+    matches = matchesResult.data?.matches || [];
+    
+    const playersResult = await nhost.graphql.request('query { players { id name team position value goals created_at updated_at } }');
+    const players = playersResult.data?.players || [];
+    aekAthen = players.filter(p => p.team === "AEK");
+    realMadrid = players.filter(p => p.team === "Real");
+    
+    const bansResult = await nhost.graphql.request('query { bans { id player_id team type totalgames matchesserved created_at updated_at } }');
+    bans = bansResult.data?.bans || [];
+    
+    const financesResult = await nhost.graphql.request('query { finances { id team balance created_at updated_at } }');
+    const finData = financesResult.data?.finances || [];
     finances = {
-        aekAthen: finData?.find(f => f.team === "AEK") || { balance: 0 },
-        realMadrid: finData?.find(f => f.team === "Real") || { balance: 0 }
+        aekAthen: finData.find(f => f.team === "AEK") || { balance: 0 },
+        realMadrid: finData.find(f => f.team === "Real") || { balance: 0 }
     };
-    const { data: sdsData } = await supabase.from('spieler_des_spiels').select('*');
-    spielerDesSpiels = sdsData || [];
-    const { data: transData } = await supabase.from('transactions').select('*').order('id', { ascending: false });
-    transactions = transData || [];
+    
+    const sdsResult = await nhost.graphql.request('query { spieler_des_spiels { id match_id player_id name team created_at updated_at } }');
+    spielerDesSpiels = sdsResult.data?.spieler_des_spiels || [];
+    
+    const transResult = await nhost.graphql.request('query { transactions(order_by: {id: desc}) { id team amount description created_at updated_at } }');
+    transactions = transResult.data?.transactions || [];
+    
     renderFn();
 }
 
@@ -60,14 +68,22 @@ export function renderMatchesTab(containerId = "app") {
 let matchesChannel;
 function subscribeMatches(renderFn = renderMatchesList) {
     if (matchesChannel) return;
-    matchesChannel = supabase
-        .channel('matches_live')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'matches' }, () => loadAllData(renderFn))
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'spieler_des_spiels' }, () => loadAllData(renderFn))
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'finances' }, () => loadAllData(renderFn))
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'players' }, () => loadAllData(renderFn))
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'transactions' }, () => loadAllData(renderFn))
-        .subscribe();
+    
+    // Use GraphQL subscription for real-time updates
+    const subscription = `
+      subscription {
+        matches { id date team1 team2 score1 score2 }
+        spieler_des_spiels { id match_id player_id }
+        finances { id team balance }
+        players { id name team goals }
+        transactions { id team amount description }
+      }
+    `;
+    
+    matchesChannel = nhost.graphql.subscribe(subscription, {}, {
+        onData: () => loadAllData(renderFn),
+        onError: (error) => console.error('Matches subscription error:', error)
+    });
 }
 
 let matchViewDate = new Date().toISOString().slice(0, 10); // Standard: heute
@@ -371,12 +387,26 @@ async function updatePlayersGoals(goalslist, team) {
     for (const scorer of goalslist) {
         if (!scorer.player) continue;
         // Spieler laden, aktueller Stand
-        const { data: player } = await supabase.from('players').select('goals').eq('name', scorer.player).eq('team', team).single();
+        const query = `query { players(where: {name: {_eq: "${scorer.player}"}, team: {_eq: "${team}"}}) { goals } }`;
+        const result = await nhost.graphql.request(query);
+        const player = result.data?.players?.[0];
+        
         let newGoals = scorer.count;
         if (player && typeof player.goals === 'number') {
             newGoals = player.goals + scorer.count;
         }
-        await supabase.from('players').update({ goals: newGoals }).eq('name', scorer.player).eq('team', team);
+        
+        const mutation = `
+            mutation {
+                update_players(
+                    where: {name: {_eq: "${scorer.player}"}, team: {_eq: "${team}"}}, 
+                    _set: {goals: ${newGoals}}
+                ) {
+                    returning { id }
+                }
+            }
+        `;
+        await nhost.graphql.request(mutation);
     }
 }
 
