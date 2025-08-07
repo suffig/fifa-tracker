@@ -134,6 +134,10 @@ function renderCurrentTab() {
     // Abfangen, falls kein App-Container vorhanden ist
     const appDiv = document.getElementById("app");
     if (!appDiv) return;
+    
+    // Add transition animation
+    appDiv.classList.add('tab-transition');
+    
     appDiv.innerHTML = ""; // leeren, um Fehler zu vermeiden
     // Robust: Tabs nur anzeigen, wenn Session da
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -148,6 +152,11 @@ function renderCurrentTab() {
         else if(currentTab==="stats") renderStatsTab("app");
         else if(currentTab==="finanzen") renderFinanzenTab("app");
         else if(currentTab==="spieler") renderSpielerTab("app");
+        
+        // Remove transition class after animation
+        setTimeout(() => {
+            appDiv.classList.remove('tab-transition');
+        }, 300);
     });
 }
 
@@ -169,7 +178,75 @@ function setupTabButtons() {
     document.getElementById("mobile-finanzen-tab")?.addEventListener("click", e => { e.preventDefault(); switchTab("finanzen"); });
     document.getElementById("mobile-spieler-tab")?.addEventListener("click", e => { e.preventDefault(); switchTab("spieler"); });
     
+    // Add swipe navigation for mobile
+    setupSwipeNavigation();
+    
     tabButtonsInitialized = true;
+}
+
+// Mobile swipe navigation
+function setupSwipeNavigation() {
+    const appContainer = document.querySelector('.app-container');
+    if (!appContainer) return;
+    
+    let startX = 0;
+    let startY = 0;
+    let isScrolling = false;
+    
+    const tabs = ["squad", "matches", "bans", "finanzen", "stats", "spieler"];
+    
+    appContainer.addEventListener('touchstart', (e) => {
+        startX = e.touches[0].clientX;
+        startY = e.touches[0].clientY;
+        isScrolling = false;
+    }, { passive: true });
+    
+    appContainer.addEventListener('touchmove', (e) => {
+        if (!startX || !startY) return;
+        
+        const currentX = e.touches[0].clientX;
+        const currentY = e.touches[0].clientY;
+        
+        const diffX = Math.abs(currentX - startX);
+        const diffY = Math.abs(currentY - startY);
+        
+        // Determine if user is scrolling vertically
+        if (diffY > diffX) {
+            isScrolling = true;
+        }
+    }, { passive: true });
+    
+    appContainer.addEventListener('touchend', (e) => {
+        if (!startX || !startY || isScrolling) {
+            startX = 0;
+            startY = 0;
+            return;
+        }
+        
+        const endX = e.changedTouches[0].clientX;
+        const diffX = startX - endX;
+        
+        // Minimum swipe distance
+        if (Math.abs(diffX) > 50) {
+            const currentIndex = tabs.indexOf(currentTab);
+            let newIndex;
+            
+            if (diffX > 0 && currentIndex < tabs.length - 1) {
+                // Swipe left - next tab
+                newIndex = currentIndex + 1;
+            } else if (diffX < 0 && currentIndex > 0) {
+                // Swipe right - previous tab
+                newIndex = currentIndex - 1;
+            }
+            
+            if (newIndex !== undefined) {
+                switchTab(tabs[newIndex]);
+            }
+        }
+        
+        startX = 0;
+        startY = 0;
+    }, { passive: true });
 }
 
 function subscribeAllLiveSync() {

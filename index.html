@@ -89,16 +89,33 @@
             border: 1px solid #f3f4f6;
         }
         
-        /* Better form elements for mobile */
-        .mobile-input {
-            font-size: 16px; /* Prevents zoom on iOS */
-            padding: 0.75rem; border-radius: 0.5rem;
-            border: 1px solid #d1d5db; width: 100%;
+        /* Mobile swipe navigation support */
+        .swipe-container {
+            touch-action: pan-y;
+            overflow-x: hidden;
         }
         
-        .mobile-input:focus {
-            outline: none; border-color: #3b82f6;
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        /* Pull-to-refresh indicator */
+        .pull-to-refresh {
+            position: absolute; top: -60px; left: 50%; transform: translateX(-50%);
+            background: #fff; border-radius: 50%; width: 40px; height: 40px;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1); opacity: 0;
+            transition: all 0.3s ease;
+        }
+        
+        .pull-to-refresh.active {
+            opacity: 1; top: 10px;
+        }
+        
+        /* Smooth tab transitions */
+        .tab-transition {
+            animation: slideInUp 0.3s ease-out;
+        }
+        
+        @keyframes slideInUp {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
         }
     </style>
 </head>

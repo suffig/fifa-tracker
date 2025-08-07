@@ -152,63 +152,88 @@
     
     <main class="p-4 pb-8 relative min-h-[calc(100vh-120px)]">
         <div id="app">
-            <!-- Sample Kader Content for Mobile Testing -->
-            <div class="mb-6">
-                <h2 class="text-2xl font-bold text-gray-900 mb-4">Kader Management</h2>
-                
-                <!-- Mobile-optimized action buttons -->
-                <div class="flex flex-wrap gap-2 mb-4">
-                    <button class="touch-target bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center">
-                        <i class="fas fa-plus mr-2"></i> Spieler hinzufügen
-                    </button>
-                    <button class="touch-target bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center">
-                        <i class="fas fa-download mr-2"></i> Export
-                    </button>
+            <!-- Sample Enhanced Kader Content for Mobile Testing -->
+            <div class="space-y-4 pb-4">
+                <!-- Mobile-optimized header -->
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <h2 class="text-xl sm:text-2xl font-bold text-gray-900">Kader Management</h2>
+                    <div class="flex flex-wrap gap-2">
+                        <button class="touch-target bg-sky-600 hover:bg-sky-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center transition shadow">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                            </svg>
+                            AEK Spieler
+                        </button>
+                        <button class="touch-target bg-rose-600 hover:bg-rose-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center transition shadow">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                            </svg>
+                            Real Spieler
+                        </button>
+                    </div>
                 </div>
                 
-                <!-- Team sections with mobile cards -->
-                <div class="space-y-6">
-                    <div>
-                        <h3 class="text-lg font-semibold text-gray-800 mb-3 flex items-center">
-                            <span class="w-4 h-4 bg-blue-500 rounded mr-2"></span>
-                            AEK Athen
-                        </h3>
-                        <div class="grid gap-3">
-                            <div class="mobile-card">
+                <!-- Mobile-first team layout -->
+                <div class="space-y-4 lg:grid lg:grid-cols-2 lg:gap-4 lg:space-y-0">
+                    <!-- AEK Team -->
+                    <div class="mobile-card bg-blue-50 dark:bg-blue-900 border-l-4 border-blue-500">
+                        <div class="flex items-center justify-between mb-3">
+                            <h3 class="font-semibold text-blue-700 dark:text-blue-200 text-lg flex items-center">
+                                <span class="w-3 h-3 bg-blue-500 rounded-full mr-2"></span>
+                                AEK Athen
+                            </h3>
+                            <div class="text-xs text-blue-600 dark:text-blue-300 font-medium">
+                                178M €
+                            </div>
+                        </div>
+                        <div class="space-y-2">
+                            <div class="mobile-card bg-white dark:bg-gray-800 border dark:border-gray-700 hover:shadow-md transition-all">
                                 <div class="flex items-center justify-between">
-                                    <div class="flex-1">
-                                        <div class="flex items-center">
-                                            <span class="text-sm font-medium text-gray-600 mr-3">TH</span>
-                                            <span class="font-semibold text-gray-900">Max Mustermann</span>
+                                    <div class="flex-1 min-w-0">
+                                        <div class="flex items-center mb-1">
+                                            <span class="inline-flex items-center justify-center w-8 h-8 bg-gray-100 dark:bg-gray-700 text-xs font-medium text-gray-600 dark:text-gray-300 rounded-full mr-3">
+                                                TH
+                                            </span>
+                                            <span class="font-semibold text-gray-900 dark:text-white truncate">Max Mustermann</span>
                                         </div>
-                                        <div class="text-sm text-gray-500 mt-1">87 Rating</div>
+                                        <div class="text-sm text-gray-500 dark:text-gray-400 font-medium">87M €</div>
                                     </div>
-                                    <div class="flex space-x-2">
-                                        <button class="touch-target text-blue-500 hover:text-blue-700">
-                                            <i class="fas fa-edit"></i>
+                                    <div class="flex items-center space-x-2 ml-3">
+                                        <button class="touch-target bg-blue-100 hover:bg-blue-200 text-blue-600 p-2 rounded-lg transition-colors">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536M9 17H6v-3L16.293 3.293a1 1 0 011.414 0l3 3a1 1 0 010 1.414L9 17z" />
+                                            </svg>
                                         </button>
-                                        <button class="touch-target text-red-500 hover:text-red-700">
-                                            <i class="fas fa-trash"></i>
+                                        <button class="touch-target bg-gray-100 hover:bg-gray-200 text-gray-600 p-2 rounded-lg transition-colors">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                                            </svg>
                                         </button>
                                     </div>
                                 </div>
                             </div>
                             
-                            <div class="mobile-card">
+                            <div class="mobile-card bg-white dark:bg-gray-800 border dark:border-gray-700 hover:shadow-md transition-all">
                                 <div class="flex items-center justify-between">
-                                    <div class="flex-1">
-                                        <div class="flex items-center">
-                                            <span class="text-sm font-medium text-gray-600 mr-3">IV</span>
-                                            <span class="font-semibold text-gray-900">Peter Schmidt</span>
+                                    <div class="flex-1 min-w-0">
+                                        <div class="flex items-center mb-1">
+                                            <span class="inline-flex items-center justify-center w-8 h-8 bg-gray-100 dark:bg-gray-700 text-xs font-medium text-gray-600 dark:text-gray-300 rounded-full mr-3">
+                                                IV
+                                            </span>
+                                            <span class="font-semibold text-gray-900 dark:text-white truncate">Peter Schmidt</span>
                                         </div>
-                                        <div class="text-sm text-gray-500 mt-1">83 Rating</div>
+                                        <div class="text-sm text-gray-500 dark:text-gray-400 font-medium">83M €</div>
                                     </div>
-                                    <div class="flex space-x-2">
-                                        <button class="touch-target text-blue-500 hover:text-blue-700">
-                                            <i class="fas fa-edit"></i>
+                                    <div class="flex items-center space-x-2 ml-3">
+                                        <button class="touch-target bg-blue-100 hover:bg-blue-200 text-blue-600 p-2 rounded-lg transition-colors">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536M9 17H6v-3L16.293 3.293a1 1 0 011.414 0l3 3a1 1 0 010 1.414L9 17z" />
+                                            </svg>
                                         </button>
-                                        <button class="touch-target text-red-500 hover:text-red-700">
-                                            <i class="fas fa-trash"></i>
+                                        <button class="touch-target bg-gray-100 hover:bg-gray-200 text-gray-600 p-2 rounded-lg transition-colors">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                                            </svg>
                                         </button>
                                     </div>
                                 </div>
@@ -216,29 +241,86 @@
                         </div>
                     </div>
                     
-                    <div>
-                        <h3 class="text-lg font-semibold text-gray-800 mb-3 flex items-center">
-                            <span class="w-4 h-4 bg-red-500 rounded mr-2"></span>
-                            Real Madrid
-                        </h3>
-                        <div class="grid gap-3">
-                            <div class="mobile-card">
+                    <!-- Real Team -->
+                    <div class="mobile-card bg-red-50 dark:bg-red-900 border-l-4 border-red-500">
+                        <div class="flex items-center justify-between mb-3">
+                            <h3 class="font-semibold text-red-700 dark:text-red-200 text-lg flex items-center">
+                                <span class="w-3 h-3 bg-red-500 rounded-full mr-2"></span>
+                                Real Madrid
+                            </h3>
+                            <div class="text-xs text-red-600 dark:text-red-300 font-medium">
+                                205M €
+                            </div>
+                        </div>
+                        <div class="space-y-2">
+                            <div class="mobile-card bg-white dark:bg-gray-800 border dark:border-gray-700 hover:shadow-md transition-all">
                                 <div class="flex items-center justify-between">
-                                    <div class="flex-1">
-                                        <div class="flex items-center">
-                                            <span class="text-sm font-medium text-gray-600 mr-3">ST</span>
-                                            <span class="font-semibold text-gray-900">Carlos Rodriguez</span>
+                                    <div class="flex-1 min-w-0">
+                                        <div class="flex items-center mb-1">
+                                            <span class="inline-flex items-center justify-center w-8 h-8 bg-gray-100 dark:bg-gray-700 text-xs font-medium text-gray-600 dark:text-gray-300 rounded-full mr-3">
+                                                ST
+                                            </span>
+                                            <span class="font-semibold text-gray-900 dark:text-white truncate">Carlos Rodriguez</span>
                                         </div>
-                                        <div class="text-sm text-gray-500 mt-1">91 Rating</div>
+                                        <div class="text-sm text-gray-500 dark:text-gray-400 font-medium">91M €</div>
                                     </div>
-                                    <div class="flex space-x-2">
-                                        <button class="touch-target text-blue-500 hover:text-blue-700">
-                                            <i class="fas fa-edit"></i>
+                                    <div class="flex items-center space-x-2 ml-3">
+                                        <button class="touch-target bg-blue-100 hover:bg-blue-200 text-blue-600 p-2 rounded-lg transition-colors">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536M9 17H6v-3L16.293 3.293a1 1 0 011.414 0l3 3a1 1 0 010 1.414L9 17z" />
+                                            </svg>
                                         </button>
-                                        <button class="touch-target text-red-500 hover:text-red-700">
-                                            <i class="fas fa-trash"></i>
+                                        <button class="touch-target bg-gray-100 hover:bg-gray-200 text-gray-600 p-2 rounded-lg transition-colors">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                                            </svg>
                                         </button>
                                     </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Ehemalige Section -->
+                <div class="mobile-card bg-gray-50 dark:bg-gray-700 border-l-4 border-gray-400">
+                    <h3 class="font-semibold text-gray-700 dark:text-gray-200 text-lg mb-3 flex items-center">
+                        <span class="w-3 h-3 bg-gray-400 rounded-full mr-2"></span>
+                        Ehemalige Spieler
+                    </h3>
+                    <div class="space-y-2">
+                        <div class="mobile-card bg-white dark:bg-gray-800 border dark:border-gray-700 hover:shadow-md transition-all">
+                            <div class="flex items-center justify-between">
+                                <div class="flex-1 min-w-0">
+                                    <div class="flex items-center mb-1">
+                                        <span class="inline-flex items-center justify-center w-8 h-8 bg-gray-100 dark:bg-gray-700 text-xs font-medium text-gray-600 dark:text-gray-300 rounded-full mr-3">
+                                            LM
+                                        </span>
+                                        <span class="font-semibold text-gray-900 dark:text-white truncate">Former Player</span>
+                                    </div>
+                                    <div class="text-sm text-gray-500 dark:text-gray-400 font-medium">45M €</div>
+                                </div>
+                                <div class="flex items-center space-x-1">
+                                    <button class="touch-target bg-blue-100 hover:bg-blue-200 text-blue-600 p-2 rounded-lg transition-colors">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536M9 17H6v-3L16.293 3.293a1 1 0 011.414 0l3 3a1 1 0 010 1.414L9 17z" />
+                                        </svg>
+                                    </button>
+                                    <button class="touch-target bg-red-100 hover:bg-red-200 text-red-600 p-2 rounded-lg transition-colors">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M10 3h4a2 2 0 012 2v2H8V5a2 2 0 012-2z" />
+                                        </svg>
+                                    </button>
+                                    <button class="touch-target bg-sky-100 hover:bg-sky-200 text-sky-600 p-2 rounded-lg transition-colors">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16l4-4-4-4" />
+                                        </svg>
+                                    </button>
+                                    <button class="touch-target bg-red-100 hover:bg-red-200 text-red-600 p-2 rounded-lg transition-colors">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                                        </svg>
+                                    </button>
                                 </div>
                             </div>
                         </div>

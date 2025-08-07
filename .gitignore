@@ -1,0 +1,20 @@
+# Test files
+test-mobile.html
+
+# Dependencies
+node_modules/
+
+# Build artifacts
+dist/
+build/
+
+# IDE files
+.vscode/
+.idea/
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
