@@ -71,30 +71,59 @@ export async function renderFinanzenTab(containerId = "app") {
 function renderFinanzenTabInner(containerId = "app") {
     const app = document.getElementById(containerId);
     app.innerHTML = `
-        <div class="mb-4">
-            <h2 class="text-lg font-semibold dark:text-white">Finanzen</h2>
-        </div>
-        <div class="flex flex-col sm:flex-row sm:space-x-8 space-y-2 sm:space-y-0 mb-6">
-            <div class="bg-blue-100 dark:bg-blue-900 text-blue-900 dark:text-blue-200 rounded-lg p-4 flex-1 min-w-0">
-                <b>AEK</b><br>
-                Kontostand: <span class="font-bold">${(finances.aekAthen.balance || 0).toLocaleString('de-DE')} €</span><br>
-                Echtgeldschulden: <span class="font-bold">${(finances.aekAthen.debt || 0).toLocaleString('de-DE')} €</span>
+        <div class="w-full animation-fade-in-up">
+            <div class="mb-6">
+                <h2 class="text-apple-title text-white mb-2">Finanzen</h2>
+                <p class="text-apple-body text-white text-opacity-70">Verwaltung der Team-Finanzen</p>
             </div>
-            <div class="bg-red-100 dark:bg-red-900 text-red-900 dark:text-red-200 rounded-lg p-4 flex-1 min-w-0">
-                <b>Real</b><br>
-                Kontostand: <span class="font-bold">${(finances.realMadrid.balance || 0).toLocaleString('de-DE')} €</span><br>
-                Echtgeldschulden: <span class="font-bold">${(finances.realMadrid.debt || 0).toLocaleString('de-DE')} €</span>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-8">
+                <div class="card-apple p-6">
+                    <div class="flex items-center mb-4">
+                        <div class="w-12 h-12 bg-gradient-to-br from-blue-400 to-blue-600 rounded-2xl flex items-center justify-center mr-4">
+                            <i class="fas fa-shield-alt text-white text-lg"></i>
+                        </div>
+                        <h3 class="text-apple-headline text-blue-600">AEK</h3>
+                    </div>
+                    <div class="space-y-3">
+                        <div class="flex justify-between items-center">
+                            <span class="text-apple-body text-gray-600">Kontostand:</span>
+                            <span class="text-apple-body font-bold text-blue-600">${(finances.aekAthen.balance || 0).toLocaleString('de-DE')} €</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-apple-body text-gray-600">Echtgeldschulden:</span>
+                            <span class="text-apple-body font-bold text-red-500">${(finances.aekAthen.debt || 0).toLocaleString('de-DE')} €</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-apple p-6">
+                    <div class="flex items-center mb-4">
+                        <div class="w-12 h-12 bg-gradient-to-br from-red-400 to-red-600 rounded-2xl flex items-center justify-center mr-4">
+                            <i class="fas fa-crown text-white text-lg"></i>
+                        </div>
+                        <h3 class="text-apple-headline text-red-600">Real</h3>
+                    </div>
+                    <div class="space-y-3">
+                        <div class="flex justify-between items-center">
+                            <span class="text-apple-body text-gray-600">Kontostand:</span>
+                            <span class="text-apple-body font-bold text-red-600">${(finances.realMadrid.balance || 0).toLocaleString('de-DE')} €</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-apple-body text-gray-600">Echtgeldschulden:</span>
+                            <span class="text-apple-body font-bold text-red-500">${(finances.realMadrid.debt || 0).toLocaleString('de-DE')} €</span>
+                        </div>
+                    </div>
+                </div>
             </div>
-        </div>
-        <div class="mb-4 flex flex-col sm:flex-row sm:justify-between items-stretch gap-2">
-            <h3 class="text-md font-semibold dark:text-white">Transaktionen</h3>
-            <button id="add-trans-btn" class="bg-green-600 hover:bg-green-700 text-white w-full sm:w-auto px-4 py-3 rounded-lg text-base flex items-center justify-center gap-2 font-semibold transition shadow">
-                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-                <span>Transaktion hinzufügen</span>
-            </button>
-        </div>
-        <div class="overflow-x-auto w-full" style="max-width:100vw;">
-          <div id="transactions-list" class="space-y-2"></div>
+            <div class="card-apple p-6">
+                <div class="flex items-center justify-between mb-6">
+                    <h3 class="text-apple-headline text-gray-800">Transaktionen</h3>
+                    <button id="add-trans-btn" class="btn-apple-secondary">
+                        <i class="fas fa-plus mr-2"></i>
+                        Hinzufügen
+                    </button>
+                </div>
+                <div id="transactions-list" class="space-y-3"></div>
+            </div>
         </div>
     `;
 

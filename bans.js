@@ -45,34 +45,46 @@ export function renderBansTab(containerId = "app") {
     const app = document.getElementById(containerId);
 
     app.innerHTML = `
-        <div class="mb-4">
-            <h2 class="text-lg font-semibold dark:text-white">Sperren</h2>
-            <div class="flex space-x-2 mt-4 mb-6">
-                <button id="add-ban-btn" class="w-full sm:w-auto bg-sky-600 hover:bg-sky-700 text-black px-4 py-3 rounded-lg text-base flex items-center gap-2 font-semibold transition shadow">
-                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-                    Sperre hinzufügen
-                </button>
+        <div class="w-full animation-fade-in-up">
+            <div class="mb-6">
+                <h2 class="text-apple-title text-white mb-2">Sperren</h2>
+                <p class="text-apple-body text-white text-opacity-70">Verwalte Spielersperren</p>
             </div>
-            <div>
-                <h3 class="font-bold text-base mb-2 dark:text-white">Aktive Sperren</h3>
-                <div id="bans-active-list" class="mb-8"></div>
+            
+            <div class="card-apple p-6 mb-6">
+                <h3 class="text-apple-headline text-red-600 flex items-center mb-4">
+                    <div class="w-12 h-12 bg-gradient-to-br from-red-400 to-red-600 rounded-2xl flex items-center justify-center mr-4">
+                        <i class="fas fa-ban text-white text-lg"></i>
+                    </div>
+                    Aktive Sperren
+                </h3>
+                <div id="bans-active-list" class="space-y-3"></div>
             </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div>
-                    <h3 class="font-bold text-base mb-2 text-blue-800 dark:text-blue-400">Vergangene Sperren AEK</h3>
-                    <div id="bans-history-aek"></div>
+            
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="card-apple p-6">
+                    <h3 class="text-apple-headline text-blue-600 flex items-center mb-4">
+                        <div class="w-12 h-12 bg-gradient-to-br from-blue-400 to-blue-600 rounded-2xl flex items-center justify-center mr-4">
+                            <i class="fas fa-shield-alt text-white text-lg"></i>
+                        </div>
+                        AEK Sperrenhistorie
+                    </h3>
+                    <div id="bans-history-aek" class="space-y-3"></div>
                 </div>
-                <div>
-                    <h3 class="font-bold text-base mb-2 text-red-800 dark:text-red-400">Vergangene Sperren Real</h3>
-                    <div id="bans-history-real"></div>
+                <div class="card-apple p-6">
+                    <h3 class="text-apple-headline text-red-600 flex items-center mb-4">
+                        <div class="w-12 h-12 bg-gradient-to-br from-red-400 to-red-600 rounded-2xl flex items-center justify-center mr-4">
+                            <i class="fas fa-crown text-white text-lg"></i>
+                        </div>
+                        Real Sperrenhistorie
+                    </h3>
+                    <div id="bans-history-real" class="space-y-3"></div>
                 </div>
             </div>
         </div>
     `;
 
     loadBansAndRender(renderBansLists);
-
-    document.getElementById('add-ban-btn').onclick = () => openBanForm();
 }
 
 function renderBansLists() {
@@ -94,40 +106,63 @@ function renderBanList(list, containerId, active) {
     const c = document.getElementById(containerId);
     if (!c) return;
     if (!list.length) {
-        c.innerHTML = `<div class="text-gray-400 text-sm">${active ? "Keine aktiven Sperren." : "Keine vergangenen Sperren."}</div>`;
+        c.innerHTML = `
+            <div class="text-center py-8 text-gray-400">
+                <i class="fas ${active ? 'fa-check-circle' : 'fa-history'} text-3xl mb-2"></i>
+                <p class="text-apple-body">${active ? "Keine aktiven Sperren" : "Keine vergangenen Sperren"}</p>
+            </div>
+        `;
         return;
     }
     c.innerHTML = '';
     list.forEach(ban => {
         const player = playersCache.find(p => p.id === ban.player_id);
-        let tClass;
-        if (!player) {
-            tClass = "bg-gray-50 dark:bg-gray-700 text-gray-400";
-        } else if (player.team === "Ehemalige") {
-            tClass = "bg-gray-200 dark:bg-gray-700 text-gray-500";
+        let teamColor, teamIcon;
+        if (!player || player.team === "Ehemalige") {
+            teamColor = "from-gray-400 to-gray-600";
+            teamIcon = "fa-user";
         } else if (player.team === "AEK") {
-            tClass = "bg-blue-100 dark:bg-blue-900 text-blue-900 dark:text-blue-200";
+            teamColor = "from-blue-400 to-blue-600";
+            teamIcon = "fa-shield-alt";
         } else {
-            tClass = "bg-red-100 dark:bg-red-900 text-red-900 dark:text-red-200";
+            teamColor = "from-red-400 to-red-600";
+            teamIcon = "fa-crown";
         }
+        
         const restGames = getRestGames(ban);
         const div = document.createElement('div');
-        div.className = `player-card border dark:border-gray-700 rounded-lg p-3 flex justify-between items-center gap-2 mb-2 ${tClass}`;
+        div.className = `list-item-apple ${active ? '' : 'opacity-75'}`;
+        
+        let statusBadge = '';
+        if (active) {
+            statusBadge = restGames > 3 ? 'badge-apple-error' : restGames > 1 ? 'badge-apple-warning' : 'badge-apple-success';
+        }
+        
         div.innerHTML = `
-            <div>
-                <div class="font-medium">${player ? player.name : "-"} <span class="text-xs text-gray-400">(${player ? player.team : "-"})</span></div>
-                <div class="text-xs text-gray-500">Typ: <b>${ban.type || "-"}</b></div>
-                <div class="text-xs text-gray-500">Start: <b>${ban.totalgames}</b> | Aktuell: <b>${restGames < 0 ? 0 : restGames}</b></div>
-                ${ban.reason ? `<div class="text-xs text-gray-400">Grund: ${ban.reason}</div>` : ''}
-            </div>
-            <div class="flex gap-1">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-4">
+                    <div class="w-14 h-14 bg-gradient-to-br ${teamColor} rounded-2xl flex items-center justify-center touch-target">
+                        <i class="fas ${teamIcon} text-white text-lg"></i>
+                    </div>
+                    <div>
+                        <p class="text-apple-body font-bold text-gray-800">${player ? player.name : "Unbekannter Spieler"}</p>
+                        <p class="text-apple-caption text-gray-500">${player ? player.team : "-"} • ${ban.type || "-"}</p>
+                        ${ban.reason ? `<p class="text-apple-caption text-gray-400">${ban.reason}</p>` : ''}
+                        <div class="flex items-center space-x-2 mt-1">
+                            <span class="badge-apple">Gesamt: ${ban.totalgames}</span>
+                            ${active ? `<span class="${statusBadge}">Verbleibend: ${restGames < 0 ? 0 : restGames}</span>` : ''}
+                        </div>
+                    </div>
+                </div>
                 ${active ? `
-                <button class="edit-ban-btn bg-sky-500 hover:bg-sky-600 text-white px-3 py-2 rounded-lg" title="Bearbeiten">
-                  <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-1.5a2.121 2.121 0 00-3 0l-7.5 7.5a2.121 2.121 0 000 3l3.5 3.5a2.121 2.121 0 003 0l7.5-7.5a2.121 2.121 0 000-3z"/></svg>
-                </button>
-                <button class="delete-ban-btn bg-rose-600 hover:bg-rose-700 text-white px-3 py-2 rounded-lg" title="Löschen">
-                  <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-                </button>
+                <div class="flex space-x-2">
+                    <button class="edit-ban-btn w-12 h-12 bg-blue-100 hover:bg-blue-200 text-blue-600 rounded-2xl flex items-center justify-center transition-all touch-target hover:scale-105" title="Bearbeiten">
+                        <i class="fas fa-edit text-lg"></i>
+                    </button>
+                    <button class="delete-ban-btn w-12 h-12 bg-red-100 hover:bg-red-200 text-red-600 rounded-2xl flex items-center justify-center transition-all touch-target hover:scale-105" title="Löschen">
+                        <i class="fas fa-trash text-lg"></i>
+                    </button>
+                </div>
                 ` : ''}
             </div>
         `;

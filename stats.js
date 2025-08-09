@@ -156,67 +156,150 @@ export async function renderStatsTab(containerId = "app") {
     // --- HTML ---
     const app = document.getElementById(containerId);
     app.innerHTML = `
-        <div class="mb-4 flex items-center gap-2">
-            <span class="text-3xl">📊</span>
-            <h2 class="text-2xl font-bold">Statistiken</h2>
-        </div>
-        <div class="flex flex-col gap-6">
-
-            <!-- Übersicht -->
-            <div class="rounded-xl shadow border bg-white p-4 mb-2">
-                <div class="font-bold text-lg mb-1">Übersicht</div>
-                <div class="flex flex-wrap gap-4 items-center text-base font-medium mb-2">
-                    <span class="flex items-center gap-1 text-blue-700"><span class="text-xl">⚽</span> ${totalGoals} Tore</span>
-                    <span class="flex items-center gap-1 text-yellow-600"><span class="text-xl">🟨</span> ${totalGelb} Gelbe Karten</span>
-                    <span class="flex items-center gap-1 text-red-600"><span class="text-xl">🟥</span> ${totalRot} Rote Karten</span>
-                </div>
-                <div class="flex flex-wrap gap-4 text-base mt-1">
-                    <span>Ø Tore/Spiel: <b>${avgGoalsPerMatch}</b></span>
-                    <span>Ø Karten/Spiel: <b>${avgCardsPerMatch}</b></span>
-                </div>
-                <div class="flex flex-col gap-1 text-xs mt-2 text-gray-600">
-                    ${maxGoalsSingle > 0 ? `Meiste Tore eines Spielers in einem Spiel: <b>${maxGoalsSingle}</b> (${maxGoalsPlayer?.name || "?"})` : ""}
-                </div>
-                <div class="flex flex-col gap-1 text-xs mt-2">
-                    <div>
-                        <span class="font-bold text-blue-800">Höchster AEK-Sieg:</span>
-                        ${aekBestWin ? `${aekBestWin.goalsFor}:${aekBestWin.goalsAgainst} (${aekBestWin.date})` : "–"}
-                    </div>
-                    <div>
-                        <span class="font-bold text-red-800">Höchster Real-Sieg:</span>
-                        ${realBestWin ? `${realBestWin.goalsFor}:${realBestWin.goalsAgainst} (${realBestWin.date})` : "–"}
-                    </div>
-                </div>
+        <div class="w-full animation-fade-in-up">
+            <div class="mb-6">
+                <h2 class="text-apple-title text-white mb-2">Statistiken</h2>
+                <p class="text-apple-body text-white text-opacity-70">Übersicht und Analysen</p>
             </div>
+            <div class="grid grid-cols-1 gap-6">
 
-            <!-- Sperren -->
-            <div class="rounded-xl shadow border bg-white p-4 mb-2">
-                <div class="flex items-center gap-2 font-bold text-lg mb-2">
-                    <span class="text-xl">🚫</span>
-                    <span>Sperren</span>
-                </div>
-                <div class="flex flex-col gap-3 text-base mb-1">
-                    <div>
-                        <div class="flex flex-wrap items-center gap-4">
-                            <span class="inline-flex items-center bg-blue-100 text-blue-900 rounded px-3 py-1 font-bold text-base min-w-[80px]">AEK</span>
-                            <span class="flex items-center gap-1"><span class="text-amber-600">🔒</span> <b>${totalBansAek}</b> Sperren</span>
-                            <span class="flex items-center gap-1"><span>⏱️</span> Ø <b>${avgBanDurationAek}</b> Spiele</span>
+                <!-- Übersicht -->
+                <div class="card-apple p-6">
+                    <div class="flex items-center mb-4">
+                        <div class="w-12 h-12 bg-gradient-to-br from-green-400 to-green-600 rounded-2xl flex items-center justify-center mr-4">
+                            <i class="fas fa-chart-bar text-white text-lg"></i>
                         </div>
-                        <div class="pl-[90px] text-blue-900 text-sm italic mt-1">${topBannedAek !== "–" ? `Top: ${topBannedAek}` : ""}</div>
+                        <h3 class="text-apple-headline text-gray-800">Spielübersicht</h3>
                     </div>
-                    <div>
-                        <div class="flex flex-wrap items-center gap-4 mt-2">
-                            <span class="inline-flex items-center bg-red-100 text-red-900 rounded px-3 py-1 font-bold text-base min-w-[80px]">Real</span>
-                            <span class="flex items-center gap-1"><span class="text-amber-600">🔒</span> <b>${totalBansReal}</b> Sperren</span>
-                            <span class="flex items-center gap-1"><span>⏱️</span> Ø <b>${avgBanDurationReal}</b> Spiele</span>
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
+                        <div class="text-center">
+                            <div class="w-16 h-16 bg-gradient-to-br from-blue-100 to-blue-200 rounded-2xl flex items-center justify-center mx-auto mb-2">
+                                <i class="fas fa-futbol text-blue-600 text-2xl"></i>
+                            </div>
+                            <p class="text-2xl font-bold text-blue-600">${totalMatches}</p>
+                            <p class="text-apple-caption text-gray-500">Spiele</p>
                         </div>
-                        <div class="pl-[90px] text-red-900 text-sm italic mt-1">${topBannedReal !== "–" ? `Top: ${topBannedReal}` : ""}</div>
+                        <div class="text-center">
+                            <div class="w-16 h-16 bg-gradient-to-br from-green-100 to-green-200 rounded-2xl flex items-center justify-center mx-auto mb-2">
+                                <i class="fas fa-bullseye text-green-600 text-2xl"></i>
+                            </div>
+                            <p class="text-2xl font-bold text-green-600">${totalGoals}</p>
+                            <p class="text-apple-caption text-gray-500">Tore</p>
+                        </div>
+                        <div class="text-center">
+                            <div class="w-16 h-16 bg-gradient-to-br from-yellow-100 to-yellow-200 rounded-2xl flex items-center justify-center mx-auto mb-2">
+                                <i class="fas fa-square text-yellow-600 text-2xl"></i>
+                            </div>
+                            <p class="text-2xl font-bold text-yellow-600">${totalGelb}</p>
+                            <p class="text-apple-caption text-gray-500">Gelb</p>
+                        </div>
+                        <div class="text-center">
+                            <div class="w-16 h-16 bg-gradient-to-br from-red-100 to-red-200 rounded-2xl flex items-center justify-center mx-auto mb-2">
+                                <i class="fas fa-square text-red-600 text-2xl"></i>
+                            </div>
+                            <p class="text-2xl font-bold text-red-600">${totalRot}</p>
+                            <p class="text-apple-caption text-gray-500">Rot</p>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div class="badge-apple text-center">
+                            <i class="fas fa-calculator mr-2"></i>
+                            Ø ${avgGoalsPerMatch} Tore/Spiel
+                        </div>
+                        <div class="badge-apple text-center">
+                            <i class="fas fa-calculator mr-2"></i>
+                            Ø ${avgCardsPerMatch} Karten/Spiel
+                        </div>
+                    </div>
+                    ${maxGoalsSingle > 0 ? `
+                    <div class="bg-gradient-to-r from-yellow-50 to-yellow-100 rounded-xl p-3 border-l-4 border-yellow-400 mt-4">
+                        <div class="flex items-center space-x-2">
+                            <div class="w-8 h-8 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-full flex items-center justify-center">
+                                <i class="fas fa-star text-white text-sm"></i>
+                            </div>
+                            <div>
+                                <p class="text-apple-caption font-semibold text-yellow-700">Rekord</p>
+                                <p class="text-apple-body font-bold text-yellow-800">${maxGoalsSingle} Tore - ${maxGoalsPlayer?.name || "?"}</p>
+                            </div>
+                        </div>
+                    </div>
+                    ` : ''}
+                </div>
+
+                <!-- Team-Vergleich -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="card-apple p-6">
+                        <div class="flex items-center mb-4">
+                            <div class="w-12 h-12 bg-gradient-to-br from-blue-400 to-blue-600 rounded-2xl flex items-center justify-center mr-4">
+                                <i class="fas fa-shield-alt text-white text-lg"></i>
+                            </div>
+                            <h3 class="text-apple-headline text-blue-600">AEK</h3>
+                        </div>
+                        <div class="space-y-3">
+                            ${aekBestWin ? `
+                            <div class="badge-apple-success">
+                                <i class="fas fa-trophy mr-2"></i>
+                                Höchster Sieg: ${aekBestWin.goalsFor}:${aekBestWin.goalsAgainst}
+                            </div>
+                            ` : ''}
+                            <div class="flex justify-between">
+                                <span class="text-apple-body text-gray-600">Sperren:</span>
+                                <span class="font-bold text-blue-600">${totalBansAek}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-apple-body text-gray-600">Ø Sperre:</span>
+                                <span class="font-bold text-blue-600">${avgBanDurationAek} Spiele</span>
+                            </div>
+                            ${topBannedAek !== "–" ? `
+                            <div class="text-apple-caption text-gray-500">
+                                <i class="fas fa-exclamation-triangle mr-1"></i>
+                                Meiste Sperren: ${topBannedAek}
+                            </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                    
+                    <div class="card-apple p-6">
+                        <div class="flex items-center mb-4">
+                            <div class="w-12 h-12 bg-gradient-to-br from-red-400 to-red-600 rounded-2xl flex items-center justify-center mr-4">
+                                <i class="fas fa-crown text-white text-lg"></i>
+                            </div>
+                            <h3 class="text-apple-headline text-red-600">Real</h3>
+                        </div>
+                        <div class="space-y-3">
+                            ${realBestWin ? `
+                            <div class="badge-apple-success">
+                                <i class="fas fa-trophy mr-2"></i>
+                                Höchster Sieg: ${realBestWin.goalsFor}:${realBestWin.goalsAgainst}
+                            </div>
+                            ` : ''}
+                            <div class="flex justify-between">
+                                <span class="text-apple-body text-gray-600">Sperren:</span>
+                                <span class="font-bold text-red-600">${totalBansReal}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-apple-body text-gray-600">Ø Sperre:</span>
+                                <span class="font-bold text-red-600">${avgBanDurationReal} Spiele</span>
+                            </div>
+                            ${topBannedReal !== "–" ? `
+                            <div class="text-apple-caption text-gray-500">
+                                <i class="fas fa-exclamation-triangle mr-1"></i>
+                                Meiste Sperren: ${topBannedReal}
+                            </div>
+                            ` : ''}
+                        </div>
                     </div>
                 </div>
+
                 ${bans.length ? `
-                    <button id="show-bans-table" class="my-2 bg-gray-100 hover:bg-blue-200 transition text-blue-800 font-semibold py-2 px-4 rounded shadow-sm text-sm">
-                        Alle Sperren anzeigen
-                    </button>
+                <div class="card-apple p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-apple-headline text-gray-800">Detaillierte Sperren</h3>
+                        <button id="show-bans-table" class="btn-apple-secondary">
+                            <i class="fas fa-list mr-2"></i>Alle anzeigen
+                        </button>
+                    </div>
+                </div>
                 ` : ""}
                 ${bansTableHtml}
             </div>
