@@ -186,35 +186,57 @@ export function renderKaderTab(containerId = "app") {
     loadPlayersAndFinances(renderPlayerLists);
 
     app.innerHTML = `
-        <div class="max-w-[480px] mx-auto w-full px-2">
-            <div class="flex flex-col sm:flex-row justify-between mb-4 gap-2">
-                <h2 class="text-lg font-semibold dark:text-black">Team-Kader</h2>
-                <div class="flex flex-col sm:flex-row sm:space-x-2 gap-2 w-full sm:w-auto">
-                    <button id="add-player-aek" class="bg-sky-600 hover:bg-sky-700 text-black w-full sm:w-auto px-4 py-3 rounded-lg text-base flex items-center justify-center gap-2 font-semibold transition shadow mb-2 sm:mb-0">
-                        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-                        <span>AEK</span>
-                    </button>
-                    <button id="add-player-real" class="bg-rose-600 hover:bg-rose-700 text-black w-full sm:w-auto px-4 py-3 rounded-lg text-base flex items-center justify-center gap-2 font-semibold transition shadow">
-                        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-                        <span>Real</span>
-                    </button>
-                </div>
+        <div class="w-full">
+            <div class="mb-6">
+                <h2 class="text-2xl font-bold text-white mb-2">Team-Kader</h2>
+                <p class="text-white text-opacity-70">Verwalte deine Spieler</p>
             </div>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div class="bg-blue-50 dark:bg-blue-900 rounded-lg p-3">
-                    <h3 class="font-medium text-blue-700 dark:text-blue-200 text-center mb-2">AEK</h3>
+            <div class="grid grid-cols-1 gap-6">
+                <div class="card-modern rounded-3xl p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-xl font-bold text-blue-600 flex items-center">
+                            <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center mr-3">
+                                <i class="fas fa-shield-alt text-blue-600 text-sm"></i>
+                            </div>
+                            AEK
+                        </h3>
+                        <button id="add-player-aek" class="bg-gradient-to-r from-blue-500 to-blue-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:from-blue-600 hover:to-blue-700 transition-all">
+                            <i class="fas fa-plus mr-1"></i> Hinzufügen
+                        </button>
+                    </div>
                     <div id="team-a-players" class="space-y-2"></div>
-                    <div class="text-xs mt-2 text-blue-900 dark:text-blue-200">Gesamter Marktwert: <span id="aek-marktwert">${getKaderMarktwert(aekAthen).toLocaleString('de-DE')}M €</span></div>
+                    <div class="text-sm mt-4 text-gray-600 bg-blue-50 rounded-xl p-3">
+                        <i class="fas fa-chart-line mr-2"></i>
+                        Gesamter Marktwert: <span id="aek-marktwert" class="font-bold text-blue-600">${getKaderMarktwert(aekAthen).toLocaleString('de-DE')}M €</span>
+                    </div>
                 </div>
-                <div class="bg-red-50 dark:bg-red-900 rounded-lg p-3">
-                    <h3 class="font-medium text-red-700 dark:text-red-200 text-center mb-2">Real</h3>
+                <div class="card-modern rounded-3xl p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-xl font-bold text-red-600 flex items-center">
+                            <div class="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center mr-3">
+                                <i class="fas fa-crown text-red-600 text-sm"></i>
+                            </div>
+                            Real
+                        </h3>
+                        <button id="add-player-real" class="bg-gradient-to-r from-red-500 to-red-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:from-red-600 hover:to-red-700 transition-all">
+                            <i class="fas fa-plus mr-1"></i> Hinzufügen
+                        </button>
+                    </div>
                     <div id="team-b-players" class="space-y-2"></div>
-                    <div class="text-xs mt-2 text-red-900 dark:text-red-200">Gesamter Marktwert: <span id="real-marktwert">${getKaderMarktwert(realMadrid).toLocaleString('de-DE')}M €</span></div>
+                    <div class="text-sm mt-4 text-gray-600 bg-red-50 rounded-xl p-3">
+                        <i class="fas fa-chart-line mr-2"></i>
+                        Gesamter Marktwert: <span id="real-marktwert" class="font-bold text-red-600">${getKaderMarktwert(realMadrid).toLocaleString('de-DE')}M €</span>
+                    </div>
                 </div>
-            </div>
-            <div class="bg-gray-100 dark:bg-gray-700 rounded-lg p-3 mt-4">
-                <h3 class="font-medium text-gray-700 dark:text-gray-200 text-center mb-2">Ehemalige</h3>
-                <div id="ehemalige-players" class="space-y-2"></div>
+                <div class="card-modern rounded-3xl p-6">
+                    <h3 class="text-xl font-bold text-gray-600 flex items-center mb-4">
+                        <div class="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center mr-3">
+                            <i class="fas fa-history text-gray-600 text-sm"></i>
+                        </div>
+                        Ehemalige
+                    </h3>
+                    <div id="ehemalige-players" class="space-y-2"></div>
+                </div>
             </div>
         </div>
     `;
@@ -241,37 +263,46 @@ function renderPlayerList(containerId, arr, team) {
         return posA - posB;
     });
     c.innerHTML = "";
+    
+    if (!arr.length) {
+        c.innerHTML = `
+            <div class="text-center py-8 text-gray-400">
+                <i class="fas fa-users text-3xl mb-2"></i>
+                <p>Noch keine Spieler</p>
+            </div>
+        `;
+        return;
+    }
+    
     arr.forEach(player => {
         const marktwert = typeof player.value === 'number'
             ? player.value
             : (player.value ? parseFloat(player.value) : 0);
 
-        // Card Layout: Edit/Löschen links, Infos Mitte, Move rechts
         const d = document.createElement("div");
-        d.className = "player-card flex items-center bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-lg p-4 shadow min-h-[110px]";
+        d.className = "player-card bg-white bg-opacity-50 backdrop-blur-sm rounded-2xl p-4 border border-white border-opacity-20 hover:bg-opacity-70 transition-all";
 
-        // Editieren/Löschen (links), nur für Ehemalige oder falls gewünscht für Teams
-        // Hier für Teams keine Löschen, nur Editieren
         d.innerHTML = `
-          <div class="flex flex-col gap-2 mr-3">
-            <button class="edit-btn bg-gray-200 hover:bg-gray-300 text-gray-700 p-2 rounded-lg flex items-center" title="Bearbeiten">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536M9 17H6v-3L16.293 3.293a1 1 0 011.414 0l3 3a1 1 0 010 1.414L9 17z" />
-              </svg>
-            </button>
-          </div>
-          <div class="flex-1">
-            <p class="font-medium">${player.name}</p>
-            <p class="text-xs text-gray-500 mb-1">${player.position}</p>
-            <p class="font-bold text-sm">${marktwert}M</p>
-          </div>
-          <div class="flex flex-col gap-2 ml-3">
-            <button class="move-btn bg-gray-400 hover:bg-gray-500 text-black p-2 rounded-lg flex items-center" title="Zu Ehemalige">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
-              </svg>
-            </button>
-          </div>
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <div class="w-12 h-12 bg-gradient-to-br ${team === 'AEK' ? 'from-blue-400 to-blue-600' : 'from-red-400 to-red-600'} rounded-xl flex items-center justify-center">
+                        <i class="fas fa-user text-white"></i>
+                    </div>
+                    <div>
+                        <p class="font-bold text-gray-800">${player.name}</p>
+                        <p class="text-sm text-gray-500">${player.position}</p>
+                        <p class="text-sm font-semibold ${team === 'AEK' ? 'text-blue-600' : 'text-red-600'}">${marktwert}M €</p>
+                    </div>
+                </div>
+                <div class="flex space-x-2">
+                    <button class="edit-btn w-10 h-10 bg-blue-100 hover:bg-blue-200 text-blue-600 rounded-xl flex items-center justify-center transition-colors" title="Bearbeiten">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="move-btn w-10 h-10 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-xl flex items-center justify-center transition-colors" title="Zu Ehemalige">
+                        <i class="fas fa-arrow-right"></i>
+                    </button>
+                </div>
+            </div>
         `;
         d.querySelector('.edit-btn').onclick = () => openPlayerForm(team, player.id);
         d.querySelector('.move-btn').onclick = () => movePlayerWithTransaction(player.id, "Ehemalige");
@@ -288,44 +319,51 @@ function renderEhemaligeList() {
         return posA - posB;
     });
     c.innerHTML = "";
+    
+    if (!sorted.length) {
+        c.innerHTML = `
+            <div class="text-center py-8 text-gray-400">
+                <i class="fas fa-history text-3xl mb-2"></i>
+                <p>Keine ehemaligen Spieler</p>
+            </div>
+        `;
+        return;
+    }
+    
     sorted.forEach((player) => {
         const marktwert = typeof player.value === 'number'
             ? player.value
             : (player.value ? parseFloat(player.value) : 0);
 
-        // Cards: Edit/Löschen links, Infos Mitte, Move zu AEK/Real rechts (blau/rot)
         const d = document.createElement("div");
-        d.className = "player-card flex items-center bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-lg p-4 shadow min-h-[110px]";
+        d.className = "player-card bg-white bg-opacity-50 backdrop-blur-sm rounded-2xl p-4 border border-white border-opacity-20 hover:bg-opacity-70 transition-all";
         d.innerHTML = `
-          <div class="flex flex-col gap-2 mr-3">
-            <button class="edit-btn bg-gray-200 hover:bg-gray-300 text-gray-700 p-2 rounded-lg flex items-center" title="Bearbeiten">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536M9 17H6v-3L16.293 3.293a1 1 0 011.414 0l3 3a1 1 0 010 1.414L9 17z" />
-              </svg>
-            </button>
-            <button class="delete-btn bg-gray-100 hover:bg-gray-300 text-gray-600 p-2 rounded-lg flex items-center" title="Löschen">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M10 3h4a2 2 0 012 2v2H8V5a2 2 0 012-2z" />
-              </svg>
-            </button>
-          </div>
-          <div class="flex-1">
-            <p class="font-medium">${player.name}</p>
-            <p class="text-xs text-gray-500 mb-1">${player.position || ""}</p>
-            <p class="font-bold text-sm">${marktwert ? marktwert + "M" : ""}</p>
-          </div>
-          <div class="flex flex-col gap-2 ml-3">
-            <button class="move-aek-btn bg-sky-600 hover:bg-sky-700 text-black p-2 rounded-lg flex items-center" title="Zu AEK">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-              </svg>
-            </button>
-            <button class="move-real-btn bg-rose-600 hover:bg-rose-700 text-black p-2 rounded-lg flex items-center" title="Zu Real">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
-              </svg>
-            </button>
-          </div>
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <div class="w-12 h-12 bg-gradient-to-br from-gray-400 to-gray-600 rounded-xl flex items-center justify-center">
+                        <i class="fas fa-user text-white"></i>
+                    </div>
+                    <div>
+                        <p class="font-bold text-gray-800">${player.name}</p>
+                        <p class="text-sm text-gray-500">${player.position || ""}</p>
+                        <p class="text-sm font-semibold text-gray-600">${marktwert ? marktwert + "M €" : ""}</p>
+                    </div>
+                </div>
+                <div class="flex space-x-2">
+                    <button class="edit-btn w-10 h-10 bg-blue-100 hover:bg-blue-200 text-blue-600 rounded-xl flex items-center justify-center transition-colors" title="Bearbeiten">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="delete-btn w-10 h-10 bg-red-100 hover:bg-red-200 text-red-600 rounded-xl flex items-center justify-center transition-colors" title="Löschen">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                    <button class="move-aek-btn w-10 h-10 bg-blue-100 hover:bg-blue-200 text-blue-600 rounded-xl flex items-center justify-center transition-colors" title="Zu AEK">
+                        <i class="fas fa-arrow-left"></i>
+                    </button>
+                    <button class="move-real-btn w-10 h-10 bg-red-100 hover:bg-red-200 text-red-600 rounded-xl flex items-center justify-center transition-colors" title="Zu Real">
+                        <i class="fas fa-arrow-right"></i>
+                    </button>
+                </div>
+            </div>
         `;
         d.querySelector('.edit-btn').onclick = () => openPlayerForm('Ehemalige', player.id);
         d.querySelector('.delete-btn').onclick = () => deletePlayerDb(player.id);
@@ -344,20 +382,30 @@ function openPlayerForm(team, id) {
         if (player) edit = true;
     }
     showModal(`
-        <form id="player-form" class="space-y-4 px-2 max-w-[420px] mx-auto bg-white dark:bg-gray-800 dark:text-gray-100 rounded-lg">
-            <h3 class="font-bold text-lg mb-2">${edit ? "Spieler bearbeiten" : "Spieler hinzufügen"} <span class="text-xs">${team}</span></h3>
-            <input type="text" name="name" class="border rounded-md p-2 w-full h-12 text-base dark:bg-gray-700 dark:text-gray-100" placeholder="Name" value="${player ? player.name : ""}" required>
-            <select name="position" class="border rounded-md p-2 w-full h-12 text-base dark:bg-gray-700 dark:text-gray-100" required>
+        <form id="player-form" class="space-y-6 p-6 max-w-md mx-auto">
+            <div class="text-center">
+                <div class="w-16 h-16 bg-gradient-to-br ${team === 'AEK' ? 'from-blue-400 to-blue-600' : team === 'Real' ? 'from-red-400 to-red-600' : 'from-gray-400 to-gray-600'} rounded-2xl flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-user text-white text-2xl"></i>
+                </div>
+                <h3 class="text-2xl font-bold text-gray-800 mb-2">${edit ? "Spieler bearbeiten" : "Spieler hinzufügen"}</h3>
+                <p class="text-gray-600">${team}</p>
+            </div>
+            <div class="space-y-4">
+                <input type="text" name="name" class="w-full px-4 py-4 rounded-2xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all outline-none text-lg" placeholder="Spielername" value="${player ? player.name : ""}" required>
+                <select name="position" class="w-full px-4 py-4 rounded-2xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all outline-none text-lg" required>
                 <option value="">Position wählen</option>
                 ${POSITIONEN.map(pos => `<option${player && player.position === pos ? " selected" : ""}>${pos}</option>`).join("")}
-            </select>
-            <input type="number" min="0" step="0.1" name="value" class="border rounded-md p-2 w-full h-12 text-base dark:bg-gray-700 dark:text-gray-100" placeholder="Marktwert (M)" value="${player && player.value !== undefined ? player.value : ""}" required>
-            <div class="flex gap-2">
-                <button type="submit" class="bg-sky-600 hover:bg-sky-700 text-black w-full px-4 py-3 rounded-lg text-base font-semibold transition flex gap-2 items-center justify-center">
-                  <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-                  ${edit ? "Speichern" : "Anlegen"}
+                </select>
+                <input type="number" min="0" step="0.1" name="value" class="w-full px-4 py-4 rounded-2xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all outline-none text-lg" placeholder="Marktwert (Millionen €)" value="${player && player.value !== undefined ? player.value : ""}" required>
+            </div>
+            <div class="flex gap-3">
+                <button type="submit" class="flex-1 bg-gradient-to-r from-blue-500 to-blue-600 text-white font-bold py-4 rounded-2xl hover:from-blue-600 hover:to-blue-700 active:scale-95 transition-all duration-150">
+                    <i class="fas fa-check mr-2"></i>
+                    ${edit ? "Speichern" : "Anlegen"}
                 </button>
-                <button type="button" class="bg-gray-200 dark:bg-gray-700 w-full px-4 py-3 rounded-lg text-base font-semibold" onclick="window.hideModal()">Abbrechen</button>
+                <button type="button" class="flex-1 bg-gray-200 text-gray-700 font-bold py-4 rounded-2xl hover:bg-gray-300 active:scale-95 transition-all duration-150" onclick="window.hideModal()">
+                    Abbrechen
+                </button>
             </div>
         </form>
     `);

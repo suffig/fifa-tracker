@@ -103,13 +103,13 @@ function showTabLoader(show = true) {
 
 function switchTab(tab) {
     currentTab = tab;
-    document.querySelectorAll('nav a').forEach(btn => {
-        btn.classList.remove("bg-blue-700","text-white","active-tab","lg:text-blue-700");
+    document.querySelectorAll('.tab-item').forEach(btn => {
+        btn.classList.remove("active");
         btn.removeAttribute("aria-current");
     });
     const desktopTab = document.getElementById(tab + "-tab");
     if (desktopTab) {
-        desktopTab.classList.add("bg-blue-700","text-white","active-tab","lg:text-blue-700");
+        desktopTab.classList.add("active");
         desktopTab.setAttribute("aria-current","page");
     }
     showTabLoader(true);
@@ -127,7 +127,10 @@ function renderCurrentTab() {
     // Robust: Tabs nur anzeigen, wenn Session da
     supabase.auth.getSession().then(({ data: { session } }) => {
         if (!session) {
-            appDiv.innerHTML = `<div class="text-red-700 text-center py-6">Nicht angemeldet. Bitte einloggen.</div>`;
+            appDiv.innerHTML = `<div class="card-modern rounded-2xl p-6 text-center">
+                <i class="fas fa-lock text-4xl text-gray-400 mb-4"></i>
+                <p class="text-gray-600">Nicht angemeldet. Bitte einloggen.</p>
+            </div>`;
             return;
         }
         // Tab-Render
@@ -148,7 +151,48 @@ function setupTabButtons() {
     document.getElementById("stats-tab")?.addEventListener("click", e => { e.preventDefault(); switchTab("stats"); });
     document.getElementById("finanzen-tab")?.addEventListener("click", e => { e.preventDefault(); switchTab("finanzen"); });
     document.getElementById("spieler-tab")?.addEventListener("click", e => { e.preventDefault(); switchTab("spieler"); });
+    
+    // Setup floating action button
+    document.getElementById("floating-add-btn")?.addEventListener("click", () => {
+        // Trigger add action based on current tab
+        if (currentTab === "squad") {
+            // Show team selection for adding player
+            showTeamSelectionModal();
+        } else if (currentTab === "matches") {
+            // Open match form
+            if (typeof openMatchForm === 'function') openMatchForm();
+        } else if (currentTab === "bans") {
+            // Open ban form
+            if (typeof openBanForm === 'function') openBanForm();
+        } else if (currentTab === "finanzen") {
+            // Open transaction form
+            if (typeof openTransForm === 'function') openTransForm();
+        }
+    });
+    
     tabButtonsInitialized = true;
+}
+
+function showTeamSelectionModal() {
+    const modal = document.createElement('div');
+    modal.className = 'fixed inset-0 z-50 flex items-end justify-center';
+    modal.innerHTML = `
+        <div class="absolute inset-0 bg-black bg-opacity-50" onclick="this.parentElement.remove()"></div>
+        <div class="card-modern rounded-t-3xl p-6 w-full max-w-md">
+            <h3 class="text-xl font-bold mb-4 text-center">Spieler hinzufügen</h3>
+            <div class="space-y-3">
+                <button onclick="openPlayerForm('AEK'); this.closest('.fixed').remove();" 
+                        class="w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white py-4 rounded-2xl font-semibold text-lg hover:from-blue-600 hover:to-blue-700 transition-all">
+                    <i class="fas fa-plus mr-2"></i> AEK Spieler
+                </button>
+                <button onclick="openPlayerForm('Real'); this.closest('.fixed').remove();" 
+                        class="w-full bg-gradient-to-r from-red-500 to-red-600 text-white py-4 rounded-2xl font-semibold text-lg hover:from-red-600 hover:to-red-700 transition-all">
+                    <i class="fas fa-plus mr-2"></i> Real Spieler
+                </button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
 }
 
 function subscribeAllLiveSync() {
@@ -223,20 +267,28 @@ async function renderLoginArea() {
         subscribeAllLiveSync();
     } else {
         loginDiv.innerHTML = `
-            <div class="flex flex-col items-center mb-3">
-                <img src="assets/logo.png" alt="Logo" class="w-60 h-60 mb-2" />
+            <div class="min-h-screen flex flex-col items-center justify-center p-6">
+                <div class="card-modern rounded-3xl p-8 w-full max-w-md">
+                    <div class="text-center mb-8">
+                        <div class="w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-3xl flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-futbol text-white text-3xl"></i>
+                        </div>
+                        <h1 class="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">FIFA Tracker</h1>
+                        <p class="text-gray-600">Willkommen zurück!</p>
+                    </div>
+                    <form id="loginform" class="space-y-4">
+                        <div class="space-y-4">
+                            <input type="email" id="email" required placeholder="E-Mail" 
+                                   class="w-full px-4 py-4 rounded-2xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all outline-none text-lg" />
+                            <input type="password" id="pw" required placeholder="Passwort" 
+                                   class="w-full px-4 py-4 rounded-2xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all outline-none text-lg" />
+                        </div>
+                        <button type="submit" class="w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white font-bold text-lg py-4 rounded-2xl shadow-lg hover:from-blue-600 hover:to-purple-700 active:scale-95 transition-all duration-150">
+                            <i class="fas fa-sign-in-alt mr-2"></i> Anmelden
+                        </button>
+                    </form>
+                </div>
             </div>
-            <form id="loginform" class="login-area flex flex-col gap-4">
-                <input type="email" id="email" required placeholder="E-Mail" class="rounded border px-6 py-3 focus:ring focus:ring-blue-200" />
-                <input type="password" id="pw" required placeholder="Passwort" class="rounded border px-6 py-3 focus:ring focus:ring-blue-200" />
-				<div class="flex gap-2 w-full">
-				  <button
-					class="login-btn bg-blue-600 text-white font-bold text-lg md:text-xl py-4 w-full rounded-2xl shadow-lg hover:bg-fuchsia-500 active:scale-95 transition-all duration-150 outline-none ring-2 ring-transparent focus:ring-blue-300"
-					style="min-width:180px;">
-					<i class="fas fa-sign-in-alt mr-2"></i> Login
-				  </button>
-				</div>
-            </form>
         `;
         appContainer.style.display = 'none';
         if (logoutBtn) logoutBtn.style.display = "none";
