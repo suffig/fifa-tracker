@@ -102,21 +102,82 @@ function showTabLoader(show = true) {
 }
 
 function switchTab(tab) {
-    currentTab = tab;
+    if (tab === currentTab) return;
+    
+    // Add fade out animation to current content
+    const appDiv = document.getElementById('app');
+    if (appDiv) {
+        appDiv.style.transition = 'opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1)';
+        appDiv.style.opacity = '0';
+    }
+    
+    // Update tab appearances with enhanced Apple-style animation
     document.querySelectorAll('.tab-item').forEach(btn => {
         btn.classList.remove("active");
         btn.removeAttribute("aria-current");
+        const icon = btn.querySelector('.tab-icon');
+        const label = btn.querySelector('.tab-label');
+        if (icon) icon.classList.remove('active');
+        if (label) label.style.opacity = '0';
     });
+    
     const desktopTab = document.getElementById(tab + "-tab");
     if (desktopTab) {
         desktopTab.classList.add("active");
         desktopTab.setAttribute("aria-current","page");
+        const icon = desktopTab.querySelector('.tab-icon');
+        const label = desktopTab.querySelector('.tab-label');
+        if (icon) icon.classList.add('active');
+        if (label) {
+            setTimeout(() => {
+                label.style.opacity = '1';
+            }, 100);
+        }
     }
-    showTabLoader(true);
+    
+    // Update FAB icon and context
+    updateFloatingActionButton(tab);
+    
+    currentTab = tab;
+    
+    // Render new content with fade in
     setTimeout(() => {
         renderCurrentTab();
-        showTabLoader(false);
-    }, 300);
+        if (appDiv) {
+            appDiv.style.opacity = '1';
+        }
+    }, 200);
+}
+
+function updateFloatingActionButton(tab) {
+    const fab = document.getElementById('floating-add-btn');
+    const fabIcon = fab?.querySelector('i');
+    
+    if (!fab || !fabIcon) return;
+    
+    // Add bounce animation to FAB
+    fab.classList.add('animation-bounce-gentle');
+    setTimeout(() => fab.classList.remove('animation-bounce-gentle'), 600);
+    
+    // Update icon based on context
+    fabIcon.classList.remove('fa-plus', 'fa-futbol', 'fa-ban', 'fa-euro-sign', 'fa-user-plus');
+    
+    switch(tab) {
+        case 'squad':
+            fabIcon.classList.add('fa-user-plus');
+            break;
+        case 'matches':
+            fabIcon.classList.add('fa-futbol');
+            break;
+        case 'bans':
+            fabIcon.classList.add('fa-ban');
+            break;
+        case 'finanzen':
+            fabIcon.classList.add('fa-euro-sign');
+            break;
+        default:
+            fabIcon.classList.add('fa-plus');
+    }
 }
 
 function renderCurrentTab() {
