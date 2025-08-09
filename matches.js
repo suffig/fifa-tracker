@@ -45,15 +45,14 @@ async function loadAllData(renderFn = renderMatchesList) {
 export function renderMatchesTab(containerId = "app") {
     const app = document.getElementById(containerId);
     app.innerHTML = `
-        <div class="flex flex-col sm:flex-row sm:justify-between mb-4 gap-2">
-            <h2 class="text-lg font-semibold">Matches</h2>
-            <button id="add-match-btn" class="bg-green-600 text-white w-full sm:w-auto px-4 py-2 rounded-lg text-base flex items-center justify-center gap-2 active:scale-95 transition">
-                <i class="fas fa-plus"></i> <span>Match hinzufügen</span>
-            </button>
+        <div class="w-full animation-fade-in-up">
+            <div class="mb-6">
+                <h2 class="text-apple-title text-white mb-2">Matches</h2>
+                <p class="text-apple-body text-white text-opacity-70">Verwalte deine Spiele</p>
+            </div>
+            <div id="matches-list" class="space-y-4"></div>
         </div>
-        <div id="matches-list" class="space-y-3"></div>
     `;
-    document.getElementById("add-match-btn").onclick = () => openMatchForm();
     loadAllData(renderMatchesList);
 }
 
@@ -79,7 +78,12 @@ function renderMatchesList() {
         return;
     }
     if (!matches.length) {
-        container.innerHTML = `<div class="text-gray-400 text-sm">Noch keine Matches eingetragen.</div>`;
+        container.innerHTML = `
+            <div class="text-center py-8 text-gray-400">
+                <i class="fas fa-futbol text-3xl mb-2"></i>
+                <p class="text-apple-body">Noch keine Matches eingetragen</p>
+            </div>
+        `;
         return;
     }
 
@@ -93,10 +97,20 @@ function renderMatchesList() {
 
     // Überschrift mit Datum, schön formatiert
     let dateStr = matchViewDate ? matchViewDate.split('-').reverse().join('.') : '';
-    let html = `<div class="text-center font-semibold text-base mb-2">Spiele am <span class="text-sky-700 dark:text-sky-400">${dateStr}</span></div>`;
+    let html = `
+        <div class="card-apple p-4 mb-6 text-center">
+            <h3 class="text-apple-headline text-gray-800">Spiele am</h3>
+            <p class="text-apple-title text-blue-600">${dateStr}</p>
+        </div>
+    `;
 
     if (!filteredMatches.length) {
-        html += `<div class="text-gray-400 text-sm">Keine Spiele für diesen Tag.</div>`;
+        html += `
+            <div class="text-center py-8 text-gray-400">
+                <i class="fas fa-calendar-times text-3xl mb-2"></i>
+                <p class="text-apple-body">Keine Spiele für diesen Tag</p>
+            </div>
+        `;
     } else {
         html += filteredMatches.map(match => {
             // Durchgehende Nummerierung, unabhängig vom Tag!
@@ -106,29 +120,43 @@ function renderMatchesList() {
     }
 
     // Navigation Buttons
-    let navHtml = `<div class="flex gap-2 justify-center mt-4">`;
-    const currIdx = uniqueDates.indexOf(matchViewDate);
-    if (currIdx < uniqueDates.length - 1) {
-        navHtml += `<button id="older-matches-btn" class="bg-gray-300 dark:bg-gray-700 px-4 py-2 rounded-lg font-semibold">Ältere Spiele anzeigen</button>`;
+    if (uniqueDates.length > 1) {
+        const currIdx = uniqueDates.indexOf(matchViewDate);
+        html += `
+            <div class="flex justify-center gap-3 mt-6">
+                ${currIdx > 0 ? 
+                    `<button id="newer-matches-btn" class="btn-apple-secondary">
+                        <i class="fas fa-chevron-left mr-2"></i>Neuere Spiele
+                    </button>` : ''
+                }
+                <div class="badge-apple">
+                    ${currIdx + 1} / ${uniqueDates.length}
+                </div>
+                ${currIdx < uniqueDates.length - 1 ? 
+                    `<button id="older-matches-btn" class="btn-apple-secondary">
+                        Ältere Spiele<i class="fas fa-chevron-right ml-2"></i>
+                    </button>` : ''
+                }
+            </div>
+        `;
     }
-    if (currIdx > 0) {
-        navHtml += `<button id="newer-matches-btn" class="bg-gray-300 dark:bg-gray-700 px-4 py-2 rounded-lg font-semibold">Neuere Spiele anzeigen</button>`;
-    }
-    navHtml += `</div>`;
-    container.innerHTML = html + navHtml;
+    
+    container.innerHTML = html;
 
     // Button-Handler für Seitenwechsel
+    const currIdx = uniqueDates.indexOf(matchViewDate);
     if (currIdx < uniqueDates.length - 1) {
-        document.getElementById('older-matches-btn').onclick = () => {
+        document.getElementById('older-matches-btn')?.addEventListener('click', () => {
             matchViewDate = uniqueDates[currIdx + 1];
             renderMatchesList();
-        };
+        });
     }
     if (currIdx > 0) {
-        document.getElementById('newer-matches-btn').onclick = () => {
+        document.getElementById('newer-matches-btn')?.addEventListener('click', () => {
             matchViewDate = uniqueDates[currIdx - 1];
             renderMatchesList();
-        };
+        });
+    }
     }
 
     document.querySelectorAll('.edit-match-btn').forEach(btn => {
@@ -141,55 +169,127 @@ function renderMatchesList() {
 
 function matchHtml(match, nr) {
     function goalsHtml(goals) {
-        if (!goals || !goals.length) return `<span class="text-gray-400 text-xs">(keine Torschützen)</span>`;
+        if (!goals || !goals.length) return `<span class="text-apple-caption text-gray-400">(keine Torschützen)</span>`;
         return goals
-            .map(g => `<span class="inline-block bg-gray-100 rounded px-2 mx-0.5">${g.player} (${g.count})</span>`)
+            .map(g => `<span class="badge-apple mr-1">${g.player} (${g.count})</span>`)
             .join('');
     }
     function prizeHtml(amount, team) {
         const isPos = amount >= 0;
-        const tClass = team === "AEK" ? "bg-blue-100" : "bg-red-100";
-        const color = isPos ? "text-green-700" : "text-red-700";
-        return `<span class="inline-block px-2 rounded ${tClass} ${color} font-bold">${isPos ? '+' : ''}${amount.toLocaleString('de-DE')} €</span>`;
+        const teamColor = team === "AEK" ? "text-blue-600" : "text-red-600";
+        const amountColor = isPos ? "text-green-600" : "text-red-600";
+        return `<span class="badge-apple ${teamColor} font-semibold">${isPos ? '+' : ''}${amount.toLocaleString('de-DE')} €</span>`;
     }
+    
+    const teamAWon = match.goalsa > match.goalsb;
+    const teamBWon = match.goalsb > match.goalsa;
+    const isDraw = match.goalsa === match.goalsb;
+    
     return `
-    <div class="bg-white border rounded-lg p-2 mt-1">
-      <div class="flex justify-between items-center mb-1">
-        <div>
-          <span class="font-bold">#${nr} ${match.date}:</span>
-          <span>${match.teama} <b>${match.goalsa}</b> : <b>${match.goalsb}</b> ${match.teamb}</span>
+    <div class="list-item-apple">
+      <div class="flex justify-between items-start mb-4">
+        <div class="flex items-center space-x-3">
+          <div class="w-12 h-12 bg-gradient-to-br from-green-400 to-green-600 rounded-2xl flex items-center justify-center">
+            <span class="text-white font-bold text-lg">#${nr}</span>
+          </div>
+          <div>
+            <p class="text-apple-body font-bold text-gray-800">${match.date}</p>
+            <p class="text-apple-caption text-gray-500">Match ${nr}</p>
+          </div>
         </div>
-        <div class="flex gap-2">
-          <button class="edit-match-btn bg-blue-500 text-white px-3 py-1 rounded-md text-sm flex items-center justify-center active:scale-95 transition" title="Bearbeiten" data-id="${match.id}">
+        <div class="flex space-x-2">
+          <button class="edit-match-btn w-10 h-10 bg-blue-100 hover:bg-blue-200 text-blue-600 rounded-xl flex items-center justify-center transition-all touch-target hover:scale-105" title="Bearbeiten" data-id="${match.id}">
             <i class="fas fa-edit"></i>
           </button>
-          <button class="delete-match-btn bg-red-500 text-white px-3 py-1 rounded-md text-sm flex items-center justify-center active:scale-95 transition" title="Löschen" data-id="${match.id}">
+          <button class="delete-match-btn w-10 h-10 bg-red-100 hover:bg-red-200 text-red-600 rounded-xl flex items-center justify-center transition-all touch-target hover:scale-105" title="Löschen" data-id="${match.id}">
             <i class="fas fa-trash"></i>
           </button>
         </div>
       </div>
-      <div class="text-xs mb-1">
-        <b>${match.teama} Torschützen:</b> ${goalsHtml(match.goalslista || [])}
+      
+      <!-- Match Score -->
+      <div class="bg-gradient-to-r from-gray-50 to-gray-100 rounded-2xl p-4 mb-4">
+        <div class="flex items-center justify-center space-x-6">
+          <div class="text-center flex-1">
+            <div class="flex items-center justify-center space-x-2 mb-2">
+              <div class="w-8 h-8 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center">
+                <i class="fas fa-shield-alt text-white text-sm"></i>
+              </div>
+              <p class="text-apple-body font-semibold ${teamAWon ? 'text-green-600' : teamBWon ? 'text-red-500' : 'text-gray-600'}">${match.teama}</p>
+            </div>
+            <p class="text-3xl font-bold ${teamAWon ? 'text-green-600' : teamBWon ? 'text-red-500' : 'text-gray-600'}">${match.goalsa}</p>
+          </div>
+          
+          <div class="text-center">
+            <p class="text-apple-caption text-gray-400 mb-2">VS</p>
+            <p class="text-2xl font-bold text-gray-400">:</p>
+          </div>
+          
+          <div class="text-center flex-1">
+            <div class="flex items-center justify-center space-x-2 mb-2">
+              <div class="w-8 h-8 bg-gradient-to-br from-red-400 to-red-600 rounded-full flex items-center justify-center">
+                <i class="fas fa-crown text-white text-sm"></i>
+              </div>
+              <p class="text-apple-body font-semibold ${teamBWon ? 'text-green-600' : teamAWon ? 'text-red-500' : 'text-gray-600'}">${match.teamb}</p>
+            </div>
+            <p class="text-3xl font-bold ${teamBWon ? 'text-green-600' : teamAWon ? 'text-red-500' : 'text-gray-600'}">${match.goalsb}</p>
+          </div>
+        </div>
       </div>
-      <div class="text-xs mb-1">
-        <b>${match.teamb} Torschützen:</b> ${goalsHtml(match.goalslistb || [])}
+      
+      <!-- Goal Scorers -->
+      <div class="space-y-3 mb-4">
+        <div>
+          <p class="text-apple-caption font-semibold text-blue-600 mb-2">${match.teama} Torschützen:</p>
+          <div class="flex flex-wrap gap-1">${goalsHtml(match.goalslista || [])}</div>
+        </div>
+        <div>
+          <p class="text-apple-caption font-semibold text-red-600 mb-2">${match.teamb} Torschützen:</p>
+          <div class="flex flex-wrap gap-1">${goalsHtml(match.goalslistb || [])}</div>
+        </div>
       </div>
-      <div class="text-xs">
-        <b>${match.teama} Karten:</b> <span class="inline-block bg-yellow-100 text-yellow-800 rounded px-2 mx-0.5 text-xs">Gelb: ${match.yellowa || 0}</span>
-        <span class="inline-block bg-red-100 text-red-800 rounded px-2 mx-0.5 text-xs">Rot: ${match.reda || 0}</span>
+      
+      <!-- Cards -->
+      <div class="grid grid-cols-2 gap-4 mb-4">
+        <div>
+          <p class="text-apple-caption font-semibold text-blue-600 mb-2">${match.teama} Karten:</p>
+          <div class="flex space-x-2">
+            <span class="badge-apple-warning">Gelb: ${match.yellowa || 0}</span>
+            <span class="badge-apple-error">Rot: ${match.reda || 0}</span>
+          </div>
+        </div>
+        <div>
+          <p class="text-apple-caption font-semibold text-red-600 mb-2">${match.teamb} Karten:</p>
+          <div class="flex space-x-2">
+            <span class="badge-apple-warning">Gelb: ${match.yellowb || 0}</span>
+            <span class="badge-apple-error">Rot: ${match.redb || 0}</span>
+          </div>
+        </div>
       </div>
-      <div class="text-xs">
-        <b>${match.teamb} Karten:</b> <span class="inline-block bg-yellow-100 text-yellow-800 rounded px-2 mx-0.5 text-xs">Gelb: ${match.yellowb || 0}</span>
-        <span class="inline-block bg-red-100 text-red-800 rounded px-2 mx-0.5 text-xs">Rot: ${match.redb || 0}</span>
+      
+      <!-- Prize Money -->
+      <div class="mb-4">
+        <p class="text-apple-caption font-semibold text-gray-600 mb-2">Preisgelder:</p>
+        <div class="flex space-x-2">
+          ${prizeHtml(match.prizeaek ?? 0, "AEK")}
+          ${prizeHtml(match.prizereal ?? 0, "Real")}
+        </div>
       </div>
-      <div class="text-xs mt-2">
-        <b>Preisgelder:</b>
-        ${prizeHtml(match.prizeaek ?? 0, "AEK")}
-        ${prizeHtml(match.prizereal ?? 0, "Real")}
+      
+      <!-- Man of the Match -->
+      ${match.manofthematch ? `
+      <div class="bg-gradient-to-r from-yellow-50 to-yellow-100 rounded-xl p-3 border-l-4 border-yellow-400">
+        <div class="flex items-center space-x-2">
+          <div class="w-8 h-8 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-full flex items-center justify-center">
+            <i class="fas fa-star text-white text-sm"></i>
+          </div>
+          <div>
+            <p class="text-apple-caption font-semibold text-yellow-700">Spieler des Spiels</p>
+            <p class="text-apple-body font-bold text-yellow-800">${match.manofthematch}</p>
+          </div>
+        </div>
       </div>
-      <div class="text-xs mt-1">
-        <b>Spieler des Spiels:</b> ${match.manofthematch ? match.manofthematch : '<span class="text-gray-400">-</span>'}
-      </div>
+      ` : ''}
     </div>
     `;
 }
