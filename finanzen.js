@@ -1,5 +1,5 @@
 import { showModal, hideModal } from './modal.js';
-import { supabase } from './supabaseClient.js';
+import { nhost } from './nhostClient.js';
 import { matches } from './matches.js';
 
 let finances = {
@@ -10,57 +10,113 @@ let transactions = [];
 
 // Lädt alle Finanzen und Transaktionen und ruft das Rendern auf
 async function loadFinancesAndTransactions(renderFn = renderFinanzenTabInner) {
-    const { data: finData, error: finError } = await supabase.from('finances').select('*');
-    if (finError) {
-        alert("Fehler beim Laden der Finanzen: " + finError.message);
-    }
-    if (finData && finData.length) {
-        finances = {
-            aekAthen: finData.find(f => f.team === "AEK") || { balance: 0, debt: 0 },
-            realMadrid: finData.find(f => f.team === "Real") || { balance: 0, debt: 0 }
-        };
-    } else {
-        finances = {
-            aekAthen: { balance: 0, debt: 0 },
-            realMadrid: { balance: 0, debt: 0 }
-        };
-    }
+    try {
+        const finResult = await nhost.graphql.request(`
+            query {
+                finances {
+                    id
+                    team
+                    balance
+                    debt
+                }
+            }
+        `);
+        
+        if (finResult.error) {
+            alert("Fehler beim Laden der Finanzen: " + finResult.error.message);
+        }
+        
+        if (finResult.data?.finances && finResult.data.finances.length) {
+            finances = {
+                aekAthen: finResult.data.finances.find(f => f.team === "AEK") || { balance: 0, debt: 0 },
+                realMadrid: finResult.data.finances.find(f => f.team === "Real") || { balance: 0, debt: 0 }
+            };
+        } else {
+            finances = {
+                aekAthen: { balance: 0, debt: 0 },
+                realMadrid: { balance: 0, debt: 0 }
+            };
+        }
 
-    const { data: transData, error: transError } = await supabase.from('transactions').select('*').order('id', { ascending: false });
-    if (transError) {
-        alert("Fehler beim Laden der Transaktionen: " + transError.message);
+        const transResult = await nhost.graphql.request(`
+            query {
+                transactions(order_by: {id: desc}) {
+                    id
+                    amount
+                    description
+                    team
+                    date
+                    type
+                    info
+                }
+            }
+        `);
+        
+        if (transResult.error) {
+            alert("Fehler beim Laden der Transaktionen: " + transResult.error.message);
+        }
+        transactions = transResult.data?.transactions || [];
+        renderFn("app");
+    } catch (error) {
+        console.error('Error loading finances and transactions:', error);
+        alert("Fehler beim Laden der Finanzdaten: " + error.message);
     }
-    transactions = transData || [];
-    renderFn("app");
 }
 
 // Transaktion in die DB schreiben und Finanzen aktualisieren
 async function saveTransaction(trans) {
-    trans.amount = parseInt(trans.amount, 10) || 0;
-    const { error: insertError } = await supabase.from('transactions').insert([{
-        date: trans.date,
-        type: trans.type,
-        team: trans.team,
-        amount: trans.amount,
-        info: trans.info || null,
-        match_id: trans.match_id || null
-    }]);
-    if (insertError) {
-        alert("Fehler beim Speichern der Transaktion: " + insertError.message);
-        return;
-    }
-    const teamKey = trans.team === "AEK" ? "aekAthen" : "realMadrid";
-    let updateObj = {};
-    if (trans.type === "Echtgeld-Ausgleich") {
-        updateObj.debt = (finances[teamKey].debt || 0) + trans.amount;
-    } else {
-        let newBalance = (finances[teamKey].balance || 0) + trans.amount;
-        if (newBalance < 0) newBalance = 0;
-        updateObj.balance = newBalance;
-    }
-    const { error: updateError } = await supabase.from('finances').update(updateObj).eq('team', trans.team);
-    if (updateError) {
-        alert("Fehler beim Aktualisieren der Finanzen: " + updateError.message);
+    try {
+        trans.amount = parseInt(trans.amount, 10) || 0;
+        
+        const insertResult = await nhost.graphql.request(`
+            mutation InsertTransaction($transaction: transactions_insert_input!) {
+                insert_transactions_one(object: $transaction) {
+                    id
+                }
+            }
+        `, {
+            transaction: {
+                date: trans.date,
+                type: trans.type,
+                team: trans.team,
+                amount: trans.amount,
+                info: trans.info || null,
+                match_id: trans.match_id || null
+            }
+        });
+        
+        if (insertResult.error) {
+            alert("Fehler beim Speichern der Transaktion: " + insertResult.error.message);
+            return;
+        }
+        
+        const teamKey = trans.team === "AEK" ? "aekAthen" : "realMadrid";
+        let updateObj = {};
+        if (trans.type === "Echtgeld-Ausgleich") {
+            updateObj.debt = (finances[teamKey].debt || 0) + trans.amount;
+        } else {
+            let newBalance = (finances[teamKey].balance || 0) + trans.amount;
+            if (newBalance < 0) newBalance = 0;
+            updateObj.balance = newBalance;
+        }
+        
+        const updateResult = await nhost.graphql.request(`
+            mutation UpdateFinances($team: String!, $updates: finances_set_input!) {
+                update_finances(where: {team: {_eq: $team}}, _set: $updates) {
+                    affected_rows
+                }
+            }
+        `, {
+            team: trans.team,
+            updates: updateObj
+        });
+        
+        if (updateResult.error) {
+            alert("Fehler beim Aktualisieren der Finanzen: " + updateResult.error.message);
+        }
+    } catch (error) {
+        console.error('Error saving transaction:', error);
+        alert("Fehler beim Speichern der Transaktion: " + error.message);
     }
 }
 

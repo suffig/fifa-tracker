@@ -1,14 +1,30 @@
 import { showModal, hideModal } from './modal.js';
-import { supabase } from './supabaseClient.js';
+import { nhost } from './nhostClient.js';
 
 // --- Helper-Funktion: Spieler für Team laden ---
 async function getPlayersByTeam(team) {
-    const { data, error } = await supabase.from('players').select('*').eq('team', team);
-    if (error) {
+    try {
+        const result = await nhost.graphql.request(`
+            query GetPlayersByTeam($team: String!) {
+                players(where: {team: {_eq: $team}}) {
+                    id
+                    name
+                    team
+                    position
+                    value
+                }
+            }
+        `, { team });
+        
+        if (result.error) {
+            console.warn('Fehler beim Laden der Spieler:', result.error.message);
+            return [];
+        }
+        return result.data?.players || [];
+    } catch (error) {
         console.warn('Fehler beim Laden der Spieler:', error.message);
         return [];
     }
-    return data || [];
 }
 
 let bans = [];
@@ -22,23 +38,55 @@ const BAN_TYPES = [
 const ALLOWED_BAN_COUNTS = [1, 2, 3, 4, 5, 6];
 
 export async function loadBansAndRender(renderFn = renderBansLists) {
-    const [{ data: bansData, error: errorBans }, { data: playersData, error: errorPlayers }] = await Promise.all([
-        supabase.from('bans').select('*'),
-        supabase.from('players').select('*')
-    ]);
-    if (errorBans) {
-        alert('Fehler beim Laden der Sperren: ' + errorBans.message);
+    try {
+        const [bansResult, playersResult] = await Promise.all([
+            nhost.graphql.request(`
+                query {
+                    bans {
+                        id
+                        player_name
+                        reason
+                        duration
+                        created_at
+                        matchesserved
+                    }
+                }
+            `),
+            nhost.graphql.request(`
+                query {
+                    players {
+                        id
+                        name
+                        team
+                        position
+                        value
+                    }
+                }
+            `)
+        ]);
+        
+        if (bansResult.error) {
+            alert('Fehler beim Laden der Sperren: ' + bansResult.error.message);
+            bans = [];
+        } else {
+            bans = bansResult.data?.bans || [];
+        }
+        
+        if (playersResult.error) {
+            alert('Fehler beim Laden der Spieler: ' + playersResult.error.message);
+            playersCache = [];
+        } else {
+            playersCache = playersResult.data?.players || [];
+        }
+        
+        renderFn();
+    } catch (error) {
+        console.error('Error loading bans and players:', error);
+        alert('Fehler beim Laden der Daten: ' + error.message);
         bans = [];
-    } else {
-        bans = bansData || [];
-    }
-    if (errorPlayers) {
-        alert('Fehler beim Laden der Spieler: ' + errorPlayers.message);
         playersCache = [];
-    } else {
-        playersCache = playersData || [];
+        renderFn();
     }
-    renderFn();
 }
 
 export function renderBansTab(containerId = "app") {
