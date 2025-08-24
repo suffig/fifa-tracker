@@ -1,5 +1,5 @@
 import { showModal, hideModal } from './modal.js';
-import { supabase } from './supabaseClient.js';
+import { supabase } from './nhostClient.js';
 
 // --- Helper-Funktion: Spieler für Team laden ---
 async function getPlayersByTeam(team) {
